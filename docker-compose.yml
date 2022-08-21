@@ -23,7 +23,7 @@ x-web-defaults: &web-defaults
     SOCIAL_LOGIN: '${SOCIAL_LOGIN-False}'
     REDIS_URL: '${REDIS_URL-redis://redis:6379}'
     DATABASE_URL: '${DATABASE_URL-sqlite:////app/db.sqlite3}'
-    INTERNAL_MEDIA_HOST: '${INTERNAL_MEDIA_HOST-http://web:3334}'
+    INTERNAL_MEDIA_HOST: '${INTERNAL_MEDIA_HOST-http://obico-web:3334}'
     ML_API_HOST: '${ML_API_HOST-http://ml_api:3333}'
     ACCOUNT_ALLOW_SIGN_UP: '${ACCOUNT_ALLOW_SIGN_UP-False}'
     WEBPACK_LOADER_ENABLED: '${WEBPACK_LOADER_ENABLED-False}'
@@ -51,18 +51,16 @@ services:
         #HAS_GPU: 'False'
     command: bash -c "gunicorn --bind 0.0.0.0:3333 --workers 1 wsgi"
 
-  web:
+  obico-web:
     <<: *web-defaults
-    hostname: web
+    hostname: obico-web
     labels:
       - "traefik.enable=true"
-      - traefik.http.routers.web.tls=true
-      - "traefik.http.services.web.loadbalancer.server.port=3334"
-      - "traefik.http.routers.web.entrypoints=websecure"
-      - traefik.http.routers.web.rule=Host("spaghetti.wizzlehq.org")
-      - traefik.http.routers.web.tls.certresolver=myresolver
-      - traefik.backend=thespaghettidetective
-      - traefik.docker.network=proxynet
+      - traefik.http.routers.obico-web.tls=true
+      - "traefik.http.services.obico-web.loadbalancer.server.port=3334"
+      - "traefik.http.routers.obico-web.entrypoints=websecure"
+      - traefik.http.routers.obico-web.rule=Host("spaghetti.wizzlehq.org")
+      - traefik.http.routers.obico-web.tls.certresolver=myresolver
     networks:
       - proxynet
     ports:
