@@ -56,8 +56,8 @@ services:
     hostname: web
     labels:
       - traefik.backend=thespaghettidetective
-      - traefik.frontend.rule=Host:spaghetti.your.domain
-      - traefik.docker.network=web
+      - traefik.frontend.rule=Host:spaghetti.wizzlehq.org
+      - traefik.docker.network=proxynet
       - traefik.port=3334
     networks:
       - proxynet
