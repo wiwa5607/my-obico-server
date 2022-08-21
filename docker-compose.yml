@@ -60,7 +60,6 @@ services:
       - traefik.docker.network=web
       - traefik.port=3334
     networks:
-      - web
       - proxynet
     ports:
       - "3334:3334"
@@ -79,8 +78,6 @@ services:
     image: redis:5.0-alpine
 
 networks:
-  web:
-    external: true
   proxynet:
     name: proxy_net
     external: true
