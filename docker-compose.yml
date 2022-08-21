@@ -55,10 +55,14 @@ services:
     <<: *web-defaults
     hostname: web
     labels:
+      - "traefik.enable=true"
+      - traefik.http.routers.web.tls=true
+      - "traefik.http.services.web.loadbalancer.server.port=3334"
+      - "traefik.http.routers.web.entrypoints=websecure"
+      - traefik.http.routers.web.rule=Host("spaghetti.wizzlehq.org")
+      - traefik.http.routers.web.tls.certresolver=myresolver
       - traefik.backend=thespaghettidetective
-      - traefik.frontend.rule=Host:spaghetti.wizzlehq.org
       - traefik.docker.network=proxynet
-      - traefik.port=3334
     networks:
       - proxynet
     ports:
