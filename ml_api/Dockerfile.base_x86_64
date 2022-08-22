@@ -1,26 +1,11 @@
 FROM nvidia/cuda:9.0-runtime-ubuntu16.04
 WORKDIR /app
 EXPOSE 3333
+ADD requirements.txt requirements_x86_64.txt ./
 RUN apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/3bf863cc.pub \
     && apt-get update \
-    && apt-get install -y libsm6 libxrender1 libfontconfig1 vim ffmpeg make \ 
-    build-essential libssl-dev zlib1g-dev \
-    libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
-    libncurses5-dev libncursesw5-dev xz-utils tk-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN wget https://www.python.org/ftp/python/3.5.9/Python-3.5.9.tgz \
-    && tar xf 'Python-3.5.9.tgz' \
-    && cd Python-3.5.9 \
-    && ./configure --enable-optimizations --with-ensurepip=install \
-    && make -j 8 \
-    && make install \
-    && python3 --version \
-    && python3 -m test
-
-# RUN pip install --upgrade pip
-ADD requirements.txt requirements_x86_64.txt ./
-# This will have errors, apparently because python 3.5 is out of support. At some point we need to recompile darknet against higher version of cuda.
-RUN pip install scikit-build \
-    && pip install site==29.13 \
-    && pip install -r requirements_x86_64.txt
+    && apt-get install -y libsm6 libxrender1 libfontconfig1 vim ffmpeg python3-dev wget curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -fsSL https://bootstrap.pypa.io/pip/3.5/get-pip.py | python3.5 \
+    && pip3 install scikit-build \
+    && pip3 install -r requirements_x86_64.txt
