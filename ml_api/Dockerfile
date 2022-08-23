@@ -1,4 +1,4 @@
-FROM thespaghettidetective/ml_api:base-1.2
+FROM glregistry.wizzlehq.org/docker/obico-server:api-base-latest
 WORKDIR /app
 EXPOSE 3333
 ADD . /app
