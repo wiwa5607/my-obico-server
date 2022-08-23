@@ -4,5 +4,5 @@ WORKDIR /app
 EXPOSE 3334
 
 ADD . /app
-RUN pip install -U pip
-RUN pip install -r requirements.txt
+RUN pip install -U pip \
+    && pip install -r requirements.txt
