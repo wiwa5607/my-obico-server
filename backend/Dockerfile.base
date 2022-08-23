@@ -5,6 +5,6 @@ EXPOSE 3334
 ADD Pipfile Pipfile.lock ./
 RUN apk -U add bash vim ffmpeg postgresql-libs git \
     && apk add --virtual .build-deps g++ musl-dev postgresql-dev zlib-dev jpeg-dev libffi-dev \
-    && pip install --upgrade pip pipenv \
+    && pip install --upgrade pip pipenv scikit-build \
     && CRYPTOGRAPHY_DONT_BUILD_RUST=1 pipenv sync \ 
     && apk --purge del .build-deps
