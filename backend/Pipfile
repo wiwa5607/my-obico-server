@@ -1,0 +1,37 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+ipdb = "*"
+django = "==2.2.27"
+gunicorn = "==19.9.0"
+whitenoise = {version = "==5.3.0", extras = ["brotli"]}
+dj-database-url = "==0.5.0"
+opencv-python = ">=3.4"
+opencv-contrib-python = ">=4.0"
+psycopg2-binary = "==2.8.6"
+django-allauth = "==0.44.0"
+django-widget-tweaks = "==1.4.3"
+djangorestframework = "==3.9.1"
+django-extensions = "==2.1.4"
+redis = "==3.2.0"
+django-simple-history = "==2.7.0"
+jsonfield = "==2.0.2"
+django-bootstrap-pagination = "==1.7.0"
+newrelic = "==4.12.0.113"
+django-settings-export = "==1.2.1"
+oauth2client = "==4.1.3"
+authy = "==2.2.3"
+phonenumbers = "==8.10.5"
+twilio = "==6.24.1"
+celery = {version = "==4.4.7", extras = ["redis"]}
+django-safedelete = "==0.5.1"
+pillow = "==9.0.1"
+django-hijack = "==2.1.10"
+
+[dev-packages]
+
+[requires]
+python_version = "3.7"
