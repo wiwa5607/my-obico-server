@@ -7,4 +7,4 @@ ADD . /app
 WORKDIR /app
 RUN chmod +x run.sh
 # ENTRYPOINT [ "/bin/bash" ]
-CMD [ "./run.sh" ]
+CMD [ "/app/run.sh" ]
