@@ -70,7 +70,22 @@ services:
   tasks:
     <<: *web-defaults
     hostname: tasks
-    command: pipenv run celery -A config worker --beat -l info -c 2 -Q realtime,celery
+    command:
+      [
+        "pipenv",
+        "run",
+        "celery",
+        "-A",
+        "config",
+        "worker",
+        "--beat",
+        "-l",
+        "info",
+        "-c",
+        "2",
+        "-Q",
+        "realtime,celery"
+      ]
 
   redis:
     restart: unless-stopped
