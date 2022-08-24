@@ -3,7 +3,7 @@ version: '2.4'
 x-web-defaults:
   &web-defaults
   restart: unless-stopped
-  image: glregistry.wizzlehq.org/docker/obico-server:backend-latest
+  image: glregistry.wizzlehq.org/docker/obico-server/backend:latest
   volumes:
     - ./backend:/app
     - ./frontend:/frontend
@@ -42,7 +42,7 @@ services:
   ml_api:
     hostname: ml_api
     restart: unless-stopped
-    image: glregistry.wizzlehq.org/docker/obico-server:api-latest
+    image: glregistry.wizzlehq.org/docker/obico-server/api:latest
     environment:
       DEBUG: 'True'
       FLASK_APP: 'server.py'
