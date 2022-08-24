@@ -11,6 +11,8 @@ sentry-sdk = {version = "==1.5.10", extras = ["flask"]}
 requests = "==2.21.0"
 gunicorn = "==19.9.0"
 ipdb = "==0.13.9"
+opencv-python = ">=3.4"
+opencv-contrib-python = ">=4.0"
 
 [dev-packages]
 
