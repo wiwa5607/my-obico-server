@@ -5,4 +5,4 @@ EXPOSE 3334
 
 ADD . /app
 # ENTRYPOINT [ "/bin/bash" ]
-CMD [ "run.sh" ]
+CMD [ "./run.sh" ]
