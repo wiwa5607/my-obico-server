@@ -4,5 +4,6 @@ WORKDIR /app
 EXPOSE 3334
 
 ADD . /app
+WORKDIR /app
 # ENTRYPOINT [ "/bin/bash" ]
 CMD [ "./run.sh" ]
