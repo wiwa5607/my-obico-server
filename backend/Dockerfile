@@ -5,4 +5,4 @@ EXPOSE 3334
 
 ADD . /app
 
-CMD [ "/bin/bash", "/app/run.sh" ]
+CMD /app/run.sh

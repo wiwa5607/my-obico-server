@@ -70,7 +70,7 @@ services:
   tasks:
     <<: *web-defaults
     hostname: tasks
-    command: [ "/bin/bash", "/app/run_celery.sh" ]
+    command: /app/run_celery.sh
 
   redis:
     restart: unless-stopped
