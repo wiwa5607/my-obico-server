@@ -18,7 +18,6 @@ x-web-defaults:
     DEFAULT_FROM_EMAIL: '${DEFAULT_FROM_EMAIL-changeme@example.com}'
     DEBUG: '${DEBUG-False}' # Don't set DEBUG to True unless you know what you are doing. Otherwise the static files will be cached in browser until hard-refresh
     SITE_USES_HTTPS: 'True'
-    SITE_IS_PUBLIC: 'True'
     SOCIAL_LOGIN: '${SOCIAL_LOGIN-False}'
     REDIS_URL: '${REDIS_URL-redis://redis:6379}'
     DATABASE_URL: '${DATABASE_URL-sqlite:////app/db.sqlite3}'
@@ -57,6 +56,7 @@ services:
       - traefik.http.routers.obico-web.tls=true
       - "traefik.http.services.obico-web.loadbalancer.server.port=3334"
       - "traefik.http.routers.obico-web.entrypoints=websecure"
+      - traefik.http.routers.glregistry.service=obico-web
       - traefik.http.routers.obico-web.rule=Host("spaghetti.wizzlehq.org")
       - traefik.http.routers.obico-web.tls.certresolver=myresolver
     networks:
