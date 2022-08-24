@@ -4,6 +4,6 @@ WORKDIR /app
 EXPOSE 3334
 
 ADD . /app
-RUN chmod +x /app/run.sh
-# ENTRYPOINT [ "/bin/bash" ]
+COPY --chmod=777 run.sh /app/run.sh
+
 CMD [ "/bin/bash", "/app/run.sh" ]
