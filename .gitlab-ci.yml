@@ -12,7 +12,7 @@ build_api_base:
   script:
     - cd ml_api
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker build -t $CI_REGISTRY/docker/obico-server/api-base:latest -f Dockerfile.base_x86_64 .
+    - docker buildx -t $CI_REGISTRY/docker/obico-server/api-base:latest -f Dockerfile.base_x86_64 .
     - docker push $CI_REGISTRY/docker/obico-server/api-base:latest
 
 build_app_base:
@@ -21,7 +21,7 @@ build_app_base:
   script:
     - cd backend
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker build -t $CI_REGISTRY/docker/obico-server/backend-base:latest -f Dockerfile.base .
+    - docker buildx -t $CI_REGISTRY/docker/obico-server/backend-base:latest -f Dockerfile.base .
     - docker push $CI_REGISTRY/docker/obico-server/backend-base:latest
 
 build_api_child:
@@ -31,7 +31,7 @@ build_api_child:
   script:
     - cd ml_api
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker build -t $CI_REGISTRY/docker/obico-server/api:latest -f Dockerfile .
+    - docker buildx -t $CI_REGISTRY/docker/obico-server/api:latest -f Dockerfile .
     - docker push $CI_REGISTRY/docker/obico-server/api:latest
 
 build_backend_child:
@@ -41,7 +41,7 @@ build_backend_child:
   script:
     - cd backend
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker build -t $CI_REGISTRY/docker/obico-server/backend:latest -f Dockerfile .
+    - docker buildx -t $CI_REGISTRY/docker/obico-server/backend:latest -f Dockerfile .
     - docker push $CI_REGISTRY/docker/obico-server/backend:latest
 build_frontend_child:
   stage: build-children
