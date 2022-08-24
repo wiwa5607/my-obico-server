@@ -5,5 +5,6 @@ EXPOSE 3334
 
 ADD . /app
 WORKDIR /app
+RUN chmod +x run.sh
 # ENTRYPOINT [ "/bin/bash" ]
 CMD [ "./run.sh" ]
