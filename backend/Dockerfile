@@ -5,4 +5,4 @@ EXPOSE 3334
 
 ADD . /app
 
-CMD [ "pipenv run manage.py migrate && pipenv run manage.py collectstatic -v 2 --noinput && pipenv run manage.py runserver --nostatic --noreload 0.0.0.0:3334" ]
+CMD [ "python3 -m pipenv run manage.py migrate && python3 -m pipenv run manage.py collectstatic -v 2 --noinput && python3 -m pipenv run manage.py runserver --nostatic --noreload 0.0.0.0:3334" ]
