@@ -63,7 +63,6 @@ services:
       - proxynet
     ports:
       - "3334:3334"
-      - "${OCTOPRINT_TUNNEL_PORT_RANGE-15853-15873}:3334"
     depends_on:
       - ml_api
 
