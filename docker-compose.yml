@@ -56,7 +56,7 @@ services:
       - traefik.http.routers.obico-web.tls=true
       - "traefik.http.services.obico-web.loadbalancer.server.port=3334"
       - "traefik.http.routers.obico-web.entrypoints=websecure"
-      - traefik.http.routers.glregistry.service=obico-web
+      - traefik.http.routers.obico-web.service=obico-web
       - traefik.http.routers.obico-web.rule=Host("spaghetti.wizzlehq.org")
       - traefik.http.routers.obico-web.tls.certresolver=myresolver
     networks:
