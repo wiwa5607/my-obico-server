@@ -4,6 +4,6 @@ WORKDIR /app
 EXPOSE 3334
 
 COPY . /app
-COPY frontend /app/frontend
+COPY frontend /frontend
 
 CMD /app/run.sh
