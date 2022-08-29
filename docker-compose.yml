@@ -57,7 +57,7 @@ services:
     depends_on:
     - ml_api
     volumes:
-      - ./backend/db.sqlite3:/app/db.sqlite3
+      # - ./backend/db.sqlite3:/app/db.sqlite3
       - ./frontend/:/app/frontend/
 
   tasks:
