@@ -27,8 +27,6 @@ build_api_child:
 
 build_backend_child:
   stage: build-children
-  needs:
-    - job: build_app_base
   script:
     - cd backend
     - cp -r ../frontend frontend
