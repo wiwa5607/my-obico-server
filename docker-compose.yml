@@ -13,7 +13,6 @@ x-web-defaults:
     EMAIL_HOST: 'smtp.sendgrid.net'
     EMAIL_DOMAIN: 'smtp.sendgrid.net'
     EMAIL_HOST_USER: 'apikey'
-    EMAIL_HOST_PASSWORD: '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'
     EMAIL_PORT: '587'
     EMAIL_USE_TLS: 'False'
     DEFAULT_FROM_EMAIL: '${DEFAULT_FROM_EMAIL-willwalker1226@gmail.com}'
