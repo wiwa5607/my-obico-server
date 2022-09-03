@@ -23,20 +23,13 @@ stages:
 backend-dokter:
   extends: .dokter_base
   script:
-    - dokter -d backend/Dockerfile --gitlab-codequality
-  artifacts:
-    reports:
-      codequality:
-        - "dokter-backend-$CI_COMMIT_SHA.json"
+    - dokter -d backend/Dockerfile -s
 
 ml_api-dokter:
   extends: .dokter_base
   script:
-    - dokter -d ml_api/Dockerfile --gitlab-codequality
-  artifacts:
-    reports:
-      codequality:
-        - "dokter-ml_api-$CI_COMMIT_SHA.json"
+    - dokter -d ml_api/Dockerfile -s
+    - dokter -d ml_api/Dockerfile.base_x86_64 -s
 
 
 build_api_base:
