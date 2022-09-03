@@ -5,7 +5,9 @@ RUN useradd -ms /bin/bash obico
 COPY --chown=obico:obico backend .
 COPY --chown=obico:obico frontend /frontend
 RUN apt-get update && apt-get install -y bash vim ffmpeg git g++ musl-dev postgresql libffi-dev cmake gcc libc-dev \
-    && pip install --upgrade pip pipenv && chmod -R 777 . && chmod -R 777 /frontend && chmod -R 777 /app
+    && chmod -R 777 /app /frontend
 USER obico
-RUN pipenv sync
+ENV PATH="${PATH}:/home/obico/.local/bin"
+RUN pip install --upgrade pip pipenv && pipenv sync
+ENTRYPOINT [ "pipenv", "shell" ]
 CMD /app/run.sh
