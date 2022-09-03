@@ -3,7 +3,7 @@ WORKDIR /app
 EXPOSE 3333
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
-COPY ml_api/Pipfile ./
+COPY Pipfile ./
 RUN apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/3bf863cc.pub \
     && apt-get update \
     && apt-get install -y libsm6 libxrender1 libfontconfig1 vim ffmpeg python3-dev wget curl \
