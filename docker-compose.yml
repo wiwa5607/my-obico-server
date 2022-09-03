@@ -13,7 +13,6 @@ x-web-defaults:
     EMAIL_HOST: 'smtp.sendgrid.net'
     EMAIL_DOMAIN: 'smtp.sendgrid.net'
     EMAIL_HOST_USER: 'apikey'
-    EMAIL_HOST_PASSWORD: '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'
     EMAIL_PORT: '587'
     EMAIL_USE_TLS: 'False'
     DEFAULT_FROM_EMAIL: '${DEFAULT_FROM_EMAIL-willwalker1226@gmail.com}'
@@ -24,7 +23,7 @@ x-web-defaults:
     DATABASE_URL: '${DATABASE_URL-sqlite:////app/db.sqlite3}'
     INTERNAL_MEDIA_HOST: '${INTERNAL_MEDIA_HOST-http://obico-web:3334}'
     ML_API_HOST: '${ML_API_HOST-http://ml_api:3333}'
-    ACCOUNT_ALLOW_SIGN_UP: '${ACCOUNT_ALLOW_SIGN_UP-False}'
+    ACCOUNT_ALLOW_SIGN_UP: '${ACCOUNT_ALLOW_SIGN_UP-True}'
     WEBPACK_LOADER_ENABLED: '${WEBPACK_LOADER_ENABLED-False}'
     OCTOPRINT_TUNNEL_PORT_RANGE: '${OCTOPRINT_TUNNEL_PORT_RANGE-15853-15873}'
 
@@ -56,9 +55,6 @@ services:
       - "3334:3334"
     depends_on:
     - ml_api
-    volumes:
-      # - ./backend/db.sqlite3:/app/db.sqlite3
-      - ./frontend/:/app/frontend/
 
   tasks:
     <<: *web-defaults
