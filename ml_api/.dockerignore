@@ -1,0 +1,5 @@
+scripts
+.gitattributes
+.gitignore
+Dockerfile*
+Pipfile
