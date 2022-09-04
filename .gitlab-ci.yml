@@ -54,6 +54,7 @@ build_api_child:
 
 build_backend_child:
   stage: build-children
+  needs: []
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker buildx build -t $CI_REGISTRY/docker/obico-server/backend:latest -f backend/Dockerfile .
