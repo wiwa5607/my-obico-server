@@ -55,6 +55,10 @@ services:
       - "3334:3334"
     depends_on:
     - ml_api
+    deploy:
+      resources:
+        limits:
+          memory: 1G
 
   tasks:
     <<: *web-defaults
