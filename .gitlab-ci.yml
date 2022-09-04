@@ -30,7 +30,7 @@ ml_api-dokter:
   script:
     - cd ml_api
     - dokter -d Dockerfile -s
-    - dokter -d Dockerfile.base_x86_64 -s
+    - dokter -d base_x86_64.Dockerfile -s
 
 
 build_api_base:
@@ -39,7 +39,7 @@ build_api_base:
   script:
     - cd ml_api
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker buildx build -t $CI_REGISTRY/docker/obico-server/api-base:latest -f Dockerfile.base_x86_64 .
+    - docker buildx build -t $CI_REGISTRY/docker/obico-server/api-base:latest -f base_x86_64.Dockerfile .
     - docker push $CI_REGISTRY/docker/obico-server/api-base:latest
 
 build_api_child:
