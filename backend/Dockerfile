@@ -9,5 +9,4 @@ RUN apt-get update && apt-get install -y bash vim ffmpeg git g++ musl-dev postgr
 USER obico
 ENV PATH="${PATH}:/home/obico/.local/bin"
 RUN pip install --upgrade pip pipenv && pipenv sync
-ENTRYPOINT [ "pipenv", "run" ]
 CMD /app/run.sh
