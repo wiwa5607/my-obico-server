@@ -300,7 +300,7 @@ if SENTRY_DSN:
     )
 
 # REDIS client
-REDIS_URL = os.environ.get('REDIS_URL', 'redis://obico-server-redis-1:6379')
+REDIS_URL = os.environ.get('REDIS_URL', 'redis://redis-1:6379')
 
 # Django cache
 CACHES = {
