@@ -276,12 +276,13 @@ class OneTimeVerificationCodeVerifyView(APIView):
 
     @report_validationerror
     def post(self, request, *args, **kwargs):
+        print("GOT NEW AUTH REQUEST")
         serializer = VerifyCodeInputSerializer(data={'code': request.GET.get('code')})
         serializer.is_valid(raise_exception=True)
-
+        print("GOT SERIALIZER")
         code = OneTimeVerificationCode.objects.filter(
             code=serializer.validated_data['code']).first()
-
+        print(f"GOT CODE {code}")
         if code:
             if not code.printer:
                 printer = Printer.objects.create(
