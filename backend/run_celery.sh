@@ -1,2 +1,2 @@
 #!/bin/bash
-pipenv run celery -A config worker --beat -l info -c 2 -Q realtimecelery
+pipenv run celery -A config worker --beat -l debug -c 2 -Q realtimecelery
