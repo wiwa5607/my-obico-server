@@ -24,7 +24,7 @@ x-web-defaults:
     DATABASE_URL: 'sqlite:////app/db.sqlite3'
     INTERNAL_MEDIA_HOST: 'http://obico-web:3334'
     ML_API_HOST: 'http://ml_api:3333'
-    ACCOUNT_ALLOW_SIGN_UP: 'True'
+    ACCOUNT_ALLOW_SIGN_UP: 'False'
     WEBPACK_LOADER_ENABLED: 'False'
     OCTOPRINT_TUNNEL_PORT_RANGE: '${OCTOPRINT_TUNNEL_PORT_RANGE-15853-15873}'
 
