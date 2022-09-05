@@ -16,7 +16,7 @@ x-web-defaults:
     EMAIL_PORT: '587'
     EMAIL_USE_TLS: 'False'
     DEFAULT_FROM_EMAIL: 'willwalker1226@gmail.com'
-    DEBUG: 'False' # Don't set DEBUG to True unless you know what you are doing. Otherwise the static files will be cached in browser until hard-refresh
+    DEBUG: 'True' # Don't set DEBUG to True unless you know what you are doing. Otherwise the static files will be cached in browser until hard-refresh
     SITE_USES_HTTPS: 'True'
     SITE_IS_PUBLIC: "True"
     SOCIAL_LOGIN: 'False'

@@ -33,7 +33,7 @@ SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_NAME = 'tsd_sessionid'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = get_bool('DEBUG', False)
+DEBUG = get_bool('DEBUG', True)
 
 ALLOWED_HOSTS = ['*']
 

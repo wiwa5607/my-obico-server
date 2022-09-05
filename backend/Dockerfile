@@ -1,5 +1,6 @@
 FROM python:3.7.13
 WORKDIR /app
+# HEALTHCHECK --interval=10m --timeout=30s --start-period=1m --retries=3 CMD [ "curl -f http://0.0.0.0:3334/api/v1/onetimeverificationcodes/2/ || exit 1" ]
 EXPOSE 3334
 RUN useradd -ms /bin/bash obico
 COPY --chown=obico:obico backend .
