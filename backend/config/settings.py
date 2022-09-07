@@ -189,7 +189,7 @@ LOGGING = {
     },
     'loggers': {
         '': {
-            'level': 'INFO',
+            'level': 'DEBUG',
             'handlers': ['console']
         },
         'daphne': {
