@@ -9,7 +9,7 @@
       }">
       <b-container class="p-0">
         <b-navbar-brand href="/">
-          <svg width="100" height="30">
+          <svg width="100" height="40">
             <use href="#svg-logo-full" />
           </svg>
         </b-navbar-brand>
@@ -24,7 +24,7 @@
           <b-navbar-nav>
             <b-nav-item v-if="user" href="/printers/" :class="{'active': viewName.includes('printers')}">Printer</b-nav-item>
             <b-nav-item v-if="user" href="/prints/" :class="{'active': viewName.includes('prints')}">Time-lapse</b-nav-item>
-            <b-nav-item v-if="user" href="/gcodes/" :class="{'active': viewName.includes('gcodes')}">G-Code</b-nav-item>
+            <b-nav-item v-if="user" href="/g_code_folders/cloud/" :class="{'active': viewName.includes('g_code_folders')}">G-Code</b-nav-item>
             <b-nav-item v-if="isEnt && !user" href="/ent_pub/publictimelapses/" :class="{'active': viewName === 'publictimelapse_list'}" class="glowing">Spaghetti Gallery</b-nav-item>
             <b-nav-item v-if="isEnt" href="/ent_pub/pricing/" :class="{'active': viewName === 'pricing'}">Pricing</b-nav-item>
             <b-nav-item href="https://www.obico.io/help/">Help</b-nav-item>
@@ -36,10 +36,7 @@
             <b-nav-item v-if="!user && allowSignUp" href="/accounts/signup/">SIGN UP</b-nav-item>
             <b-nav-item-dropdown v-if="user" ref="accountDropdown" right toggle-class="user-menu" :text="user.first_name || user.email">
               <b-dropdown-item href="/user_preferences/">
-                <i class="fas fa-sliders-h mr-2"></i>Preferences
-              </b-dropdown-item>
-              <b-dropdown-item v-if="isEnt" href="/user_preferences/subscription">
-                <i class="far fa-user-circle mr-2"></i>Account
+                <i class="fas fa-cog mr-2"></i>Preferences
               </b-dropdown-item>
               <b-dropdown-divider></b-dropdown-divider>
               <b-dropdown-item href="/accounts/logout/">

@@ -3,6 +3,7 @@ import assign from 'lodash/assign'
 import Vue from 'vue'
 import ifvisible from 'ifvisible'
 import pako from 'pako'
+import {toArrayBuffer} from '@src/lib/utils'
 
 export default function PrinterComm(printerId, wsUri, onPrinterUpdateReceived, onStatusReceived=null) {
   var self = {}
@@ -30,10 +31,21 @@ export default function PrinterComm(printerId, wsUri, onPrinterUpdateReceived, o
       const callback = self.passthruQueue.get(refId)
       self.passthruQueue.delete(refId)
       callback(null, msg.ret)
+    } else if ('printer_event' in msg) {
+      const printerEvent = msg.printer_event
+      Vue.swal.Toast.fire({
+        icon: printerEvent.event_class.toLowerCase(),
+        title: printerEvent.event_title,
+        html: printerEvent.event_text,
+      }).then(result => {
+        if (result.isDismissed && result.dismiss === 'close') { // SWAL returns 'close' as the reason when user clicks on the toast
+          window.location.href = '/printer_events/'
+        }
+      })
     }
   }
 
-  self.connect = function() {
+  self.connect = function(onOpenCallback = null) {
     self.ws = new WebSocket( window.location.protocol.replace('http', 'ws') + '//' + window.location.host + self.wsUri)
     self.ws.onmessage = function (e) {
       let msg = {}
@@ -48,6 +60,10 @@ export default function PrinterComm(printerId, wsUri, onPrinterUpdateReceived, o
       } else {
         onPrinterUpdateReceived(msg)
       }
+    }
+
+    if (onOpenCallback) {
+      self.ws.onopen = onOpenCallback;
     }
 
     self.ensureWebsocketClosed()
@@ -76,40 +92,17 @@ export default function PrinterComm(printerId, wsUri, onPrinterUpdateReceived, o
       }
     }
 
-    self.webrtc.callbacks.onData = (maybeBin) => {
-      if (!maybeBin) {
-        return
-      }
-
-      if (maybeBin instanceof ArrayBuffer) {
-        try {
-          const jsonData = pako.ungzip(new Uint8Array(maybeBin), {'to': 'string'})
-          parseJsonData(jsonData)
-        } catch {
-          console.error('could not decompress datachannel arraybuffer')
+    self.webrtc.setCallbacks({
+      onData: (maybeBin) => {
+        if (typeof maybeBin === 'string' || maybeBin instanceof String) {
+          parseJsonData(maybeBin)
+        } else {
+          toArrayBuffer(maybeBin, (arrayBuffer) => {
+            parseJsonData(pako.ungzip(new Uint8Array(arrayBuffer), {'to': 'string'}))
+          })
         }
-
-      } else if (maybeBin instanceof Blob) {
-        const reader = new FileReader()
-        reader.addEventListener('loadend', (e) => {
-          if (!e.srcElement) {
-            return
-          }
-
-          const arrayBuffer = e.srcElement.result
-
-          try {
-            const jsonData = pako.ungzip(new Uint8Array(arrayBuffer), {'to': 'string'})
-            parseJsonData(jsonData)
-          } catch {
-            console.error('could not decompress datachannel blob')
-          }
-        })
-        reader.readAsArrayBuffer(maybeBin)
-      } else {
-        parseJsonData(maybeBin)
-      }
-    }
+      },
+    })
   }
 
   self.passThruToPrinter = function(msg, callback) {
@@ -121,7 +114,7 @@ export default function PrinterComm(printerId, wsUri, onPrinterUpdateReceived, o
         setTimeout(function() {
           if (self.passthruQueue.has(refId)) {
             Vue.swal.Toast.fire({
-              type: 'error',
+              icon: 'error',
               title: 'Failed to contact OctoPrint, or the Obico plugin version is older than 1.2.0.',
             })
           }

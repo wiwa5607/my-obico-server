@@ -1,9 +1,9 @@
-FROM glregistry.wizzlehq.org/docker/obico-server/api-base:latest
+FROM thespaghettidetective/ml_api:base-1.1
 WORKDIR /app
 EXPOSE 3333
-COPY bin /app/bin/
-COPY lib /app/lib/
-COPY model /app/model/
-COPY Pipfile auth.py server.py run.sh wsgi.py /app/
-RUN wget --quiet -O model/model.weights "$(tr -d '\r' < model/model.weights.url)"
-CMD [ "pipenv", "run", "gunicorn", "--bind", "0.0.0.0:3333", "--workers", "1", "wsgi" ]
+
+ADD . /app
+RUN pip install --upgrade pip
+RUN pip install -r requirements.txt
+
+RUN wget --quiet -O model/model.weights $(cat model/model.weights.url | tr -d '\r')

@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict
 from allauth.account.admin import EmailAddress
 from datetime import datetime, timedelta
 import logging
@@ -8,8 +8,7 @@ from secrets import token_hex
 from django.db import models, IntegrityError
 from jsonfield import JSONField
 import uuid
-from django.contrib.auth.models import AbstractUser
-from django.contrib.auth.models import UserManager as BaseUserManager
+from django.contrib.auth.models import AbstractUser, UserManager as BaseUserManager
 from django.utils.translation import ugettext_lazy as _
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -21,18 +20,18 @@ from safedelete.managers import SafeDeleteManager
 from pushbullet import Pushbullet, errors
 from django.utils.html import mark_safe
 from django.contrib.auth.hashers import make_password
+from django.db.models import F, Q
+from django.db.models.constraints import UniqueConstraint
+
+
 
 from config.celery import celery_app
 from lib import cache, channels
-from lib.utils import dict_or_none
+from lib.utils import dict_or_none, get_rotated_pic_url
 
 LOGGER = logging.getLogger(__name__)
 
 UNLIMITED_DH = 100000000    # A very big number to indicate this is unlimited DH
-
-
-class ResurrectionError(Exception):
-    pass
 
 
 def dh_is_unlimited(dh):
@@ -90,6 +89,7 @@ class User(AbstractUser):
     mobile_app_canary = models.BooleanField(null=False, blank=False, default=False)
     tunnel_cap_multiplier = models.FloatField(null=False, blank=False, default=1)
     notification_enabled = models.BooleanField(null=False, blank=False, default=True)
+    unseen_printer_events = models.IntegerField(null=False, blank=False, default=0)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
@@ -167,6 +167,8 @@ class Printer(SafeDeleteModel):
     detective_sensitivity = models.FloatField(null=False, default=1.0)
     min_timelapse_secs_on_finish = models.IntegerField(null=False, default=60*10)  # Default to 10 minutes. -1: timelapse disabled
     min_timelapse_secs_on_cancel = models.IntegerField(null=False, default=60*5)  # Default to 5 minutes. -1: timelapse disabled
+    agent_name = models.CharField(max_length=64, null=True, blank=True)
+    agent_version = models.CharField(max_length=64, null=True, blank=True)
 
     archived_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -196,11 +198,15 @@ class Printer(SafeDeleteModel):
         if p_settings.get('temp_profiles'):
             p_settings['temp_profiles'] = json.loads(p_settings.get('temp_profiles'))
 
+        # Backward compatibility: for mobile app 1.66 or earlier
+        if self.agent_name and self.agent_version:
+            p_settings.update(dict(agent_name=self.agent_name, agent_version=self.agent_version))
+
         return p_settings
 
     # should_watch and not_watching_reason follow slightly different rules
     # should_watch is used by the plugin. Therefore printing status is not a factor, otherwise we may have a feedback cycle:
-    #    printer paused -> update server cache -> send should_watch to plugin -> udpate server
+    #    printer paused -> update server cache -> send should_watch to plugin -> update server
     # not_watching_reason is used by the web app and mobile app
 
     def should_watch(self):
@@ -229,33 +235,44 @@ class Printer(SafeDeleteModel):
 
         return printer_cur_state and printer_cur_state.get('flags', {}).get('printing', False)
 
-    def update_current_print(self, filename, current_print_ts):
-        if current_print_ts == -1:      # Not printing
+    def update_current_print(self, current_print_ts, g_code_file_id, filename):
+        # current_print_ts == -1 => Not printing in OctoPrint or Moonraker
+        if current_print_ts == -1:
             if self.current_print:
-                if self.current_print.started_at < (timezone.now() - timedelta(hours=10)):
-                    self.unset_current_print()
-                else:
-                    LOGGER.warn(f'current_print_ts=-1 received when current print is still active. print_id: {self.current_print_id} - printer_id: {self.id}')
-
+                LOGGER.warn(f'current_print_ts=-1 received when current print is still active. Force-closing print. print_id: {self.current_print_id} - printer_id: {self.id}')
+                self.unset_current_print()
             return
 
-        # currently printing
+        # current_print_ts != -1 => Currently printing in OctoPrint or Moonraker
 
-        if self.current_print:
-            if self.current_print.ext_id == current_print_ts:
-                return
-            # Unknown bug in plugin that causes current_print_ts not unique
+        if not self.current_print:
+            if filename:
+                self.set_current_print(filename, g_code_file_id, current_print_ts)
+            else:
+                # Sometimes moonraker-obico sends current_print_ts without octoprint_data, which is a bug.
+                LOGGER.warn(f'Active current_print_ts but filename is None in the status. current_print_ts: {current_print_ts} - printer_id: {self.id}')
+            return
 
-            if self.current_print.ext_id in range(current_print_ts - 20, current_print_ts + 20) and self.current_print.filename == filename:
-                LOGGER.warn(
-                    f'Apparently skewed print_ts received. ts1: {self.current_print.ext_id} - ts2: {current_print_ts} - print_id: {self.current_print_id} - printer_id: {self.id}')
+        if self.current_print.g_code_file_id != g_code_file_id:
+            self.current_print.g_code_file_id = g_code_file_id
+            self.current_print.save()
 
-                return
+        # Current print in OctoPrint matches current_print in db. Nothing to update.
+        if self.current_print.ext_id == current_print_ts:
+            return
+
+        # Unknown bug in plugin that causes current_print_ts to change by a few seconds. Suspected to be caused by two PrintStarted OctoPrint events in quick secession.
+        # So we assume it's the same printer if 2 current_print_ts are within range, and filenames are the same
+        if self.current_print.ext_id in range(current_print_ts - 20, current_print_ts + 20) and self.current_print.filename == filename:
+            LOGGER.warn(
+                f'Apparently skewed print_ts received. ts1: {self.current_print.ext_id} - ts2: {current_print_ts} - print_id: {self.current_print_id} - printer_id: {self.id}')
+            self.current_print.ext_id = current_print_ts
+            self.current_print.save()
+        else:
             LOGGER.warn(f'Print not properly ended before next start. Stale print_id: {self.current_print_id} - printer_id: {self.id}')
             self.unset_current_print()
-            self.set_current_print(filename, current_print_ts)
-        else:
-            self.set_current_print(filename, current_print_ts)
+            self.set_current_print(filename, g_code_file_id, current_print_ts)
+
 
     def unset_current_print(self):
         print = self.current_print
@@ -268,56 +285,48 @@ class Printer(SafeDeleteModel):
             print.finished_at = timezone.now()
             print.save()
 
-        PrintEvent.create(print, PrintEvent.ENDED)
+        PrinterEvent.create(print=print, event_type=PrinterEvent.ENDED, task_handler=True)
         self.send_should_watch_status()
 
-    def set_current_print(self, filename, current_print_ts):
-        if not current_print_ts or current_print_ts == -1:
-            raise Exception(f'Invalid current_print_ts when trying to set current_print: {current_print_ts}')
-
+    def set_current_print(self, filename, g_code_file_id, current_print_ts):
+        filename = filename.strip()
         try:
             cur_print, _ = Print.objects.get_or_create(
                 user=self.user,
                 printer=self,
                 ext_id=current_print_ts,
-                defaults={'filename': filename.strip(), 'started_at': timezone.now()},
+                defaults={'filename': filename, 'g_code_file_id': g_code_file_id, 'started_at': timezone.now()},
             )
         except IntegrityError:
-            raise ResurrectionError('Current print is deleted! printer_id: {} | print_ts: {} | filename: {}'.format(self.id, current_print_ts, filename))
+            raise Exception('Current print is deleted! printer_id: {} | print_ts: {} | filename: {}'.format(self.id, current_print_ts, filename))
 
         if cur_print.ended_at():
             if cur_print.ended_at() > (timezone.now() - timedelta(seconds=30)):  # Race condition. Some msg with valid print_ts arrived after msg with print_ts=-1
                 return
             else:
-                raise ResurrectionError('Ended print is re-surrected! printer_id: {} | print_ts: {} | filename: {}'.format(self.id, current_print_ts, filename))
+                raise Exception('Ended print is re-surrected! printer_id: {} | print_ts: {} | filename: {}'.format(self.id, current_print_ts, filename))
 
         self.current_print = cur_print
         self.save()
 
         self.printerprediction.reset_for_new_print()
-        PrintEvent.create(cur_print, PrintEvent.STARTED)
+        PrinterEvent.create(print=cur_print, event_type=PrinterEvent.STARTED, task_handler=True)
         self.send_should_watch_status()
 
     ## return: succeeded? ##
     def resume_print(self, mute_alert=False, initiator=None):
         if self.current_print is None:  # when a link on an old email is clicked
             return False
+        self.current_print.alert_acknowledged(Print.NOT_FAILED)
 
-        self.current_print.paused_at = None
-        self.current_print.save()
-
-        self.acknowledge_alert(Print.NOT_FAILED)
         self.send_octoprint_command('resume', initiator=initiator)
-
         return True
 
     ## return: succeeded? ##
     def pause_print(self, initiator=None):
         if self.current_print is None:
             return False
-
-        self.current_print.paused_at = timezone.now()
-        self.current_print.save()
+        self.current_print.paused() # Hack: print.paused_at is used to prevent pausing multiple times in case of detected failure. Set it right away to prevent it.
 
         args = {'retract': self.retract_on_pause, 'lift_z': self.lift_z_on_pause}
 
@@ -334,8 +343,7 @@ class Printer(SafeDeleteModel):
     def cancel_print(self, initiator=None):
         if self.current_print is None:  # when a link on an old email is clicked
             return False
-
-        self.acknowledge_alert(Print.FAILED)
+        self.current_print.alert_acknowledged(Print.FAILED)
         self.send_octoprint_command('cancel', initiator=initiator)
 
         return True
@@ -344,22 +352,14 @@ class Printer(SafeDeleteModel):
         self.current_print.alerted_at = timezone.now()
         self.current_print.save()
 
-    def acknowledge_alert(self, alert_overwrite):
-        if not self.current_print or not self.current_print.alerted_at:   # Not even alerted. Shouldn't be here. Maybe user error?
-            return
-
-        self.current_print.alert_acknowledged_at = timezone.now()
-        self.current_print.alert_overwrite = alert_overwrite
-        self.current_print.save()
-
     def mute_current_print(self, muted):
         self.current_print.alert_muted_at = timezone.now() if muted else None
         self.current_print.save()
 
         if muted:
-            PrintEvent.create(self.current_print, PrintEvent.ALERT_MUTED)
+            PrinterEvent.create(print=self.current_print, event_type=PrinterEvent.ALERT_MUTED, task_handler=True)
         else:
-            PrintEvent.create(self.current_print, PrintEvent.ALERT_UNMUTED)
+            PrinterEvent.create(print=self.current_print, event_type=PrinterEvent.ALERT_UNMUTED, task_handler=True)
 
         self.send_should_watch_status()
 
@@ -469,6 +469,7 @@ class Print(SafeDeleteModel):
     )
 
     printer = models.ForeignKey(Printer, on_delete=models.CASCADE, null=True)
+    g_code_file = models.ForeignKey('GCodeFile', on_delete=models.SET_NULL, null=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=False)
     ext_id = models.IntegerField(null=True, blank=True)
     filename = models.CharField(max_length=1000, null=False, blank=False)
@@ -494,6 +495,28 @@ class Print(SafeDeleteModel):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def paused(self):
+        self.paused_at = timezone.now()
+        self.save()
+
+    def resumed(self):
+        self.paused_at = None
+        self.save()
+        self.alert_acknowledged(Print.NOT_FAILED)
+
+    def cancelled(self):
+        self.cancelled_at = timezone.now()
+        self.save()
+        self.alert_acknowledged(Print.FAILED)
+
+    def alert_acknowledged(self, alert_overwrite):
+        if not self.alerted_at:   # Not even alerted. Shouldn't be here. Maybe user error?
+            return
+
+        self.alert_acknowledged_at = timezone.now()
+        self.alert_overwrite = alert_overwrite
+        self.save()
+
     def ended_at(self):
         return self.cancelled_at or self.finished_at
 
@@ -511,44 +534,128 @@ class Print(SafeDeleteModel):
         return self.tagged_video_url or self.uploaded_at
 
 
-class PrintEvent(models.Model):
+class PrinterEvent(models.Model):
+
     STARTED = 'STARTED'
     ENDED = 'ENDED'
     PAUSED = 'PAUSED'
     RESUMED = 'RESUMED'
+    FAILURE_ALERTED = 'FAILURE_ALERTED'
     ALERT_MUTED = 'ALERT_MUTED'
     ALERT_UNMUTED = 'ALERT_UNMUTED'
     FILAMENT_CHANGE = 'FILAMENT_CHANGE'
+    PRINTER_ERROR = 'PRINTER_ERROR'
 
     EVENT_TYPE = (
         (STARTED, STARTED),
         (ENDED, ENDED),
         (PAUSED, PAUSED),
         (RESUMED, RESUMED),
+        (FAILURE_ALERTED, FAILURE_ALERTED),
         (ALERT_MUTED, ALERT_MUTED),
         (ALERT_UNMUTED, ALERT_UNMUTED),
         (FILAMENT_CHANGE, FILAMENT_CHANGE),
+        (PRINTER_ERROR, PRINTER_ERROR),
     )
 
-    print = models.ForeignKey(Print, on_delete=models.CASCADE, null=False)
+    ERROR = 'ERROR'
+    WARNING = 'WARNING'
+    SUCCESS = 'SUCCESS'
+    INFO = 'INFO'
+
+    EVENT_CLASS = (
+        (ERROR, ERROR),
+        (WARNING, WARNING),
+        (SUCCESS, SUCCESS),
+        (INFO, INFO),
+    )
+
+    print = models.ForeignKey(Print, on_delete=models.CASCADE, null=True)
+    printer = models.ForeignKey(Printer, on_delete=models.CASCADE, null=False)
     event_type = models.CharField(
         max_length=256,
         choices=EVENT_TYPE,
-        null=True
+        null=False,
+        db_index=True,
     )
-    alert_muted = models.BooleanField(null=False)
+    event_class = models.CharField(
+        max_length=256,
+        choices=EVENT_CLASS,
+        null=False,
+        db_index=True,
+    )
+    event_title = models.TextField(
+        null=True,
+        blank=True,
+    )
+    event_text = models.TextField(
+        null=True,
+        blank=True,
+    )
+    image_url = models.TextField(
+        null=True,
+        blank=True,
+    )
+    info_url = models.TextField(
+        null=True,
+        blank=True,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def create(print_, event_type):
-        event = PrintEvent.objects.create(
-            print=print_,
-            event_type=event_type,
-            alert_muted=(print_.alert_muted_at is not None)
-        )
-        celery_app.send_task(
-            settings.PRINT_EVENT_HANDLER,
-            args=(event.id, ),
-        )
+    def create(task_handler=False, **kwargs):
+
+        def printer_event_attrs_from_print(event_type, print_):
+            if event_type == PrinterEvent.ENDED:
+                if print_.is_canceled():
+                    attrs = dict(event_class=PrinterEvent.WARNING, event_title='Print Job Canceled')
+                else:
+                    attrs = dict(event_class=PrinterEvent.SUCCESS, event_title='Print Job Finished')
+            elif event_type == PrinterEvent.FAILURE_ALERTED:
+                attrs = dict(event_class=PrinterEvent.ERROR, event_title='Possible Failure Detected')
+            elif event_type == PrinterEvent.ALERT_MUTED:
+                attrs = dict(event_class=PrinterEvent.WARNING, event_title='Watching Turned Off')
+            elif event_type == PrinterEvent.FILAMENT_CHANGE:
+                attrs = dict(event_class=PrinterEvent.WARNING, event_title='Filament Change Required')
+            else:
+                attrs = dict(event_class=PrinterEvent.INFO, event_title='Print Job ' + event_type.capitalize())
+
+            attrs.update(dict(
+                event_text=f'<div><i>Printer:</i> {print_.printer.name}</div><div><i>G-Code:</i> {print_.filename}</div>',
+            ))
+            return attrs
+
+        # When PrinterEvent is associated with a specific print, more data can be populated.
+        if kwargs.get('print') is not None:
+            kwargs['printer'] = kwargs.get('print').printer
+
+            is_print_job_event = kwargs.get('event_type') in (
+                PrinterEvent.STARTED,
+                PrinterEvent.ENDED,
+                PrinterEvent.PAUSED,
+                PrinterEvent.RESUMED,
+                PrinterEvent.FAILURE_ALERTED,
+                PrinterEvent.ALERT_MUTED,
+                PrinterEvent.FILAMENT_CHANGE,
+            )
+
+            if is_print_job_event and kwargs.get('event_title') is None and kwargs.get('event_class') is None:
+                attrs = printer_event_attrs_from_print(kwargs.get('event_type'), kwargs.get('print'))
+                kwargs.update(attrs)
+
+            if kwargs.get('image_url') is None:
+                kwargs.update({'image_url': get_rotated_pic_url(kwargs.get('print').printer, force_snapshot=True)})
+
+        printer_event = PrinterEvent.objects.create(**kwargs)
+
+        printer_event.printer.user.unseen_printer_events += 1
+        printer_event.printer.user.save()
+
+        if task_handler:
+            celery_app.send_task(
+                settings.PRINT_EVENT_HANDLER,
+                args=(printer_event.id, ),
+            )
+
 
 class SharedResource(models.Model):
     printer = models.OneToOneField(Printer, on_delete=models.CASCADE, null=True)
@@ -558,12 +665,55 @@ class SharedResource(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 
-class GCodeFile(SafeDeleteModel):
+class GCodeFolder(models.Model):
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=['user', 'parent_folder', 'safe_name'],
+                             name='unique_with_parent_folder'),
+            UniqueConstraint(fields=['user', 'safe_name'],
+                             condition=Q(parent_folder=None),
+                             name='unique_without_parent_folder'),
+        ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=False)
+    parent_folder = models.ForeignKey('GCodeFolder', on_delete=models.CASCADE, null=True)
+    name = models.CharField(max_length=1000, null=False, blank=False)
+    safe_name = models.CharField(max_length=1000, null=False, blank=False, db_index=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def g_code_folder_count(self):
+        return self.gcodefolder_set.count()
+
+    def g_code_file_count(self):
+        return self.gcodefile_set.count()
+
+
+class GCodeFile(models.Model):
+    class Meta:
+        indexes = [
+            models.Index(fields=['agent_signature'])
+        ]
+        # TODO: we will need to come back to turn on the unique constraints once we combine the same file names to versions
+        # constraints = [
+        #     UniqueConstraint(fields=['user', 'parent_folder', 'safe_filename'],
+        #                      name='unique_with_parent_folder'),
+        #     UniqueConstraint(fields=['user', 'safe_filename'],
+        #                      condition=Q(parent_folder=None),
+        #                      name='unique_without_parent_folder'),
+        # ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=False)
     filename = models.CharField(max_length=1000, null=False, blank=False)
-    safe_filename = models.CharField(max_length=1000, null=False, blank=False)
-    url = models.CharField(max_length=2000, null=False, blank=False)
-    num_bytes = models.BigIntegerField(null=True, blank=True)
+    safe_filename = models.CharField(max_length=1000, null=False, blank=False, db_index=True)
+    parent_folder = models.ForeignKey(GCodeFolder, on_delete=models.CASCADE, null=True)
+    url = models.CharField(max_length=2000, null=True, blank=False)
+    num_bytes = models.BigIntegerField(null=True, blank=True, db_index=True)
+    resident_printer = models.ForeignKey(Printer, on_delete=models.CASCADE, null=True)  # null for gcode files on the server
+    # A value the agent can independently derive to match with the server. Format: scheme:value
+    agent_signature = models.CharField(max_length=256, null=True, blank=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -674,6 +824,7 @@ class OctoPrintTunnelManager(SafeDeleteManager):
     def get_queryset(self):
         return super(OctoPrintTunnelManager, self).get_queryset().filter(
             printer__user__is_active=True,
+            printer__deleted__isnull=True,
             printer__archived_at__isnull=True)
 
 
@@ -741,8 +892,11 @@ class OctoPrintTunnel(SafeDeleteModel):
                 plain_basicauth_password
             )
 
-        if settings.OCTOPRINT_TUNNEL_PORT_RANGE:
-            instance.port = OctoPrintTunnel.get_a_free_port()
+        if settings.OCTOPRINT_TUNNEL_PORT_RANGE is not None:
+            free_port = OctoPrintTunnel.get_a_free_port()
+            if not free_port:
+                return None
+            instance.port = free_port
         else:
             instance.subdomain_code = token_hex(8)
 
@@ -756,6 +910,8 @@ class OctoPrintTunnel(SafeDeleteModel):
         ).values_list('port', flat=True))
         possible = set(settings.OCTOPRINT_TUNNEL_PORT_RANGE)
         free = possible - occupied
+        if not free:
+            return None
         return free.pop()
 
     def get_host(self, request):
@@ -803,10 +959,6 @@ class NotificationSetting(models.Model):
     @property
     def config(self) -> Dict:
         return json.loads(self.config_json) if self.config_json else {}
-
-    @config.setter
-    def config(self, data: Dict) -> None:
-        self.config_json = json.dumps(data)
 
     class Meta:
         unique_together = ('user', 'name')

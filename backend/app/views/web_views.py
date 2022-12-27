@@ -202,33 +202,24 @@ def print_shot_feedback(request, pk):
 
 ### GCode File page ###
 
+@login_required
+def g_code_folders(request, template_dir=None):
+    return render(request, get_template_path('g_code_folders', template_dir))
 
 @login_required
-def gcodes(request, template_dir=None):
-    return render(request, get_template_path('gcode_files', template_dir))
+def g_code_files(request, template_dir=None):
+    return render(request, get_template_path('g_code_files', template_dir))
 
+
+## Notifications page
 
 @login_required
-def upload_gcode_file(request):
-    if request.method == 'POST':
-        file_size_limit = 500 * 1024 * 1024 if request.user.is_pro else 100 * 1024 * 1024
-        if request.FILES['file'].size > file_size_limit:
-            return HttpResponse('File size too large', status=413)
+def printer_events(request):
+    user = request.user
+    user.unseen_printer_events = 0
+    user.save()
+    return render(request, 'printer_events.html')
 
-        _, file_extension = os.path.splitext(request.FILES['file'].name)
-        gcode_file = GCodeFile.objects.create(
-            user=request.user,
-            filename=request.FILES['file'].name,
-            safe_filename=re.sub(r'[^\w\.]', '_', request.FILES['file'].name),
-            num_bytes=request.FILES['file'].size,
-        )
-        _, ext_url = save_file_obj(f'{request.user.id}/{gcode_file.id}', request.FILES['file'], settings.GCODE_CONTAINER)
-        gcode_file.url = ext_url
-        gcode_file.save()
-
-        return JsonResponse(dict(status='Ok'))
-    else:
-        return render(request, 'upload_print.html')
 
 ### Misc ####
 

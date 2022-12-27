@@ -19,7 +19,7 @@ LOGGER = logging.getLogger(__file__)
 
 
 def float_or_none(v):
-    if v == None:
+    if v is None or v == '':
         return None
     return float(v)
 
@@ -200,6 +200,7 @@ def update_heater_trackers(printer: Printer,
                     'heater_target': event.state.target,
                     'heater_offset': event.state.offset,
                 },
+                img_url=None,
                 print_=printer.current_print if printer.current_print_id else None,
             )
 

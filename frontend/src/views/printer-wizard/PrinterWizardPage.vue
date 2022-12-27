@@ -271,6 +271,7 @@ cd moonraker-obico
 import axios from 'axios'
 import moment from 'moment'
 import urls from '@config/server-urls'
+import {onPrinterLinked} from '@config/event-handler'
 import routes from '@src/views/printer-wizard/wizard-routes'
 import {WizardButton, FormWizard, TabContent} from 'vue-form-wizard'
 import 'vue-form-wizard/dist/vue-form-wizard.min.css'
@@ -492,6 +493,9 @@ export default {
             this.verificationCode = resp.data
             if (this.verificationCode.verified_at) {
               this.verifiedPrinter = resp.data.printer
+              if (onPrinterLinked) {
+                onPrinterLinked();
+              }
             }
           }
         })
@@ -596,11 +600,10 @@ export default {
 </script>
 
 <style lang="sass" scoped>
-$container-border-radius: 16px
 
 .wizard-card
   background-color: var(--color-surface-primary)
-  border-radius: $container-border-radius
+  border-radius: var(--border-radius-lg)
   padding: 1em
   display: flex
   flex-direction: column
@@ -624,6 +627,7 @@ $container-border-radius: 16px
   -webkit-box-shadow: 0px 3px 15px rgba(0, 0, 0, 0.3) !important
   box-shadow: 0px 3px 15px rgba(0, 0, 0, 0.3) !important
   border: none !important
+  border-radius: var(--border-radius-lg)
 .btn-back
   color: var(--color-text-primary)
   min-width: auto
@@ -640,7 +644,7 @@ img
 .spacer
  width: 200px
 .code-btn
-  border-radius: 10px
+  border-radius: var(--border-radius-sm)
   text-align: center
   width: 21rem
   height: 60px

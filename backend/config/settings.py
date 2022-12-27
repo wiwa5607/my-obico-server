@@ -3,6 +3,7 @@ import dj_database_url
 import re
 import os
 import sentry_sdk
+import json
 from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.celery import CeleryIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
@@ -33,7 +34,7 @@ SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_NAME = 'tsd_sessionid'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = get_bool('DEBUG', True)
+DEBUG = get_bool('DEBUG', False)
 
 ALLOWED_HOSTS = ['*']
 
@@ -98,6 +99,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'app.middleware.octoprint_tunnelv2',
+    'app.middleware.check_admin_ip_whitelist',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -180,24 +182,44 @@ LOGGING = {
         'console': {
             'format': '%(name)-12s %(levelname)-8s %(message)s'
         },
+        'console_debug': {
+            '()': 'colorlog.ColoredFormatter',
+            'format': '%(log_color)s%(name)-12s %(levelname)-8s %(message)s',
+            'log_colors': {
+                'DEBUG':    'bold_black',
+                'INFO':     'white',
+                'WARNING':  'yellow',
+                'ERROR':    'red',
+                'CRITICAL': 'bold_red',
+            },
+        },
+    },
+    'filters': {
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        }
     },
     'handlers': {
+        'console_debug': {
+            'level': 'DEBUG',
+            'filters': ['require_debug_true'],
+            'class': 'logging.StreamHandler',
+            'formatter': 'console_debug'
+        },
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'console'
         },
     },
     'loggers': {
-        '': {
+        'django.db.backends': {
             'level': 'DEBUG',
-            'handlers': ['console']
+            'handlers': ['console_debug'],
         },
-        'daphne': {
-        'handlers': [
-            'console',
-        ],
-        'level': 'DEBUG'
-},
+        'root': {
+            'level': 'INFO',
+            'handlers': ['console']
+        }
     }
 }
 
@@ -419,3 +441,5 @@ WELL_KNOWN_PATH = None
 NOTIFICATION_PLUGIN_DIRS = [
     os.path.join(BASE_DIR, 'notifications/plugins'),
 ]
+
+ADMIN_IP_WHITELIST = json.loads(os.environ.get('ADMIN_IP_WHITELIST') or '[]')

@@ -14,6 +14,10 @@ module.exports = {
   onBrokenMarkdownLinks: 'throw',
   favicon: '/img/favicon.png',
   themeConfig: {
+    announcementBar: {
+      id: 'giveStarOnGitHubAnnouncement',
+      content: `⭐️ If you like Obico, give it a star on <a target="_blank" rel="noopener noreferrer" href="https://github.com/TheSpaghettiDetective/obico-server">GitHub</a>`,
+    },
     colorMode: {
       // "light" | "dark"
       defaultMode: 'dark',
@@ -48,6 +52,7 @@ module.exports = {
     },
     navbar: {
       title: '',
+      hideOnScroll: true,
       logo: {
         alt: 'Obico logo',
         src: 'img/logo.svg',
@@ -90,25 +95,19 @@ module.exports = {
           ],
         },
         {
-          label: 'Pricing',
-          to: 'https://app.obico.io/ent_pub/pricing/',
-          target: '_self',
-        },
-        {
-          label: 'Community',
-          to: 'https://obico.io/discord',
-          target: '_self',
-        },
-        {
           label: 'Docs',
           items: [
             {
-              label: 'Self-hosting',
-              to: '/docs/server-guides/install/',
+              label: 'Set up Obico for OctoPrint',
+              to: '/docs/user-guides/octoprint-plugin-setup/',
             },
             {
-              label: 'Obico Server Plugin',
-              to: '/docs/developer-guides/plugins/',
+              label: 'Set up Obico for Klipper',
+              to: '/docs/user-guides/klipper-setup/',
+            },
+            {
+              label: 'Self-hosting',
+              to: '/docs/server-guides/',
             },
             {
               label: 'Client APIs',
@@ -116,21 +115,27 @@ module.exports = {
             },
             {
               label: 'Developer Tutorials',
-              to: '/docs/api/',
+              to: '/docs/tutorials/',
             },
           ],
-        },
-        {
-          label: 'Help',
-          to: '/help',
         },
         {
           label: 'Contribute',
           to: '/docs/developer-guides/contribute/',
         },
         {
+          label: 'Community',
+          to: 'https://obico.io/discord',
+          target: '_self',
+        },
+        {
           label: 'Blog',
           to: '/blog',
+        },
+        {
+          label: 'Pricing',
+          to: 'https://app.obico.io/ent_pub/pricing/',
+          target: '_self',
         },
         {
           label: 'About',
@@ -224,11 +229,15 @@ module.exports = {
             },
             {
               label: 'Developer Tutorials',
-              to: '/docs/api/',
+              to: '/docs/tutorials/',
+            },
+            {
+              label: 'Orange Pi Zero 2 OctoPrint Kit',
+              to: '/docs/user-guides/install-octoprint-orange-pi-zero-2-kit/',
             },
           ],
         },
-        
+
 
         {
           title: 'Company',

@@ -1,4 +1,4 @@
-from django.urls import path, re_path
+4from django.urls import path, re_path
 from django.views.generic.base import RedirectView
 
 from .views import web_views
@@ -24,11 +24,14 @@ urlpatterns = [
     path('prints/upload/', web_views.upload_print),
     path('prints/<int:pk>/', web_views.print),
     path('prints/shot-feedback/<pk>/', web_views.print_shot_feedback),
-    path('gcodes/', web_views.gcodes),
-    path('gcodes/upload/', web_views.upload_gcode_file,),
+    re_path('^g_code_folders/', web_views.g_code_folders),
+    re_path('^g_code_files/', web_views.g_code_files),
+    # Compatible with mobile app versions <= 1.73
+    path('gcodes/', web_views.g_code_folders),
     path('hc/', web_views.health_check,),
     path('publictimelapses/', RedirectView.as_view(url='/ent_pub/publictimelapses/', permanent=True), name='publictimelapse_list'),
-     path('slack_oauth_callback/', web_views.slack_oauth_callback, name='slack_oauth_callback'),
+    path('slack_oauth_callback/', web_views.slack_oauth_callback, name='slack_oauth_callback'),
+    path('printer_events/', web_views.printer_events),
 
     # tunnel v2 redirect and page with iframe
     re_path(
@@ -48,10 +51,4 @@ urlpatterns = [
     path('mobile/auth/apple/', mobile_views.apple_login),
     path('mobile/auth/fetch/', mobile_views.fetch_session),
     path('mobile/auth/oauth_callback/', mobile_views.oauth_callback),
-    path('mobile/user_preferences/', web_views.user_preferences),
-    path('mobile/prints/', web_views.prints),
-    path('mobile/gcodes/', web_views.gcodes, {"template_dir": "mobile"}),
-    path('mobile/gcodes/upload/', web_views.upload_gcode_file),
-    path('mobile/printers/<pk>/', web_views.edit_printer),
-    path('mobile/printers/<int:pk>/delete/', web_views.delete_printer),
 ]
