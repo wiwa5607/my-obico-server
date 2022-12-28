@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "47c33e7de5e97c44a4da56deeef966d79c07feb43480fa9a94f5e2c621b5a7dc"
+            "sha256": "bad6e613a9aafef887119bd9b76a642313330d68dac765b2b7d01226be1846f2"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -328,6 +328,14 @@
             "markers": "python_version >= '3.6'",
             "version": "==2.1.1"
         },
+        "colorlog": {
+            "hashes": [
+                "sha256:0d33ca236784a1ba3ff9c532d4964126d8a2c44f1f0cb1d2b0728196f512f662",
+                "sha256:bd94bd21c1e13fac7bd3153f4bc3a7dc0eb0974b8bc2fdf1a989e474f6e582e5"
+            ],
+            "index": "pypi",
+            "version": "==6.7.0"
+        },
         "constantly": {
             "hashes": [
                 "sha256:586372eb92059873e29eba4f9dec8381541b4d3834660707faf8ba59146dfc35",
@@ -368,7 +376,6 @@
             "version": "==38.0.4"
         },
         "daphne": {
-            "editable": true,
             "git": "https://github.com/TheSpaghettiDetective/daphne",
             "hashes": [
                 "sha256:1ca46d7419103958bbc9576fb7ba3b25b053006e22058bc97084ee1a7d44f4ba",
@@ -1446,7 +1453,7 @@
                 "sha256:7c5599b102feddaa661c826c56ab4fee28bfd17f5abca1ebbe3e7f19d7c97983",
                 "sha256:8fefa2a1a1365bf5520aac41836fbee479da67864514bdb821f31ce07ce65349"
             ],
-            "markers": "python_version >= '3.7' and python_version < '4'",
+            "markers": "python_version >= '3'",
             "version": "==2.28.1"
         },
         "requests-oauthlib": {
@@ -1597,7 +1604,6 @@
         },
         "twisted": {
             "extras": [
-                "http2",
                 "tls"
             ],
             "hashes": [

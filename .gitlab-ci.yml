@@ -12,6 +12,8 @@ workflow:
     - if: "$CI_PIPELINE_SOURCE == 'push' && $CI_COMMIT_BRANCH == 'main'"
       changes:
         - "**/*Dockerfile"
+        - "backend/Pipfile"
+        - "backend/Pipfile.lock"
 
 
 .dokter_base:
