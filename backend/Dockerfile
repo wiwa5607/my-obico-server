@@ -9,5 +9,5 @@ RUN apt-get update && apt-get install -y bash vim ffmpeg git g++ musl-dev postgr
     && chmod -R 777 /app /frontend
 USER obico
 ENV PATH="${PATH}:/home/obico/.local/bin"
-RUN pip install --upgrade pip 'Twisted[tls,http2]' packaging pipenv && pipenv sync
+RUN pip install --upgrade pip 'Twisted[tls,http2]' pipenv && pipenv sync
 CMD /app/run.sh
