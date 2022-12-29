@@ -1,5 +1,4 @@
 version: '2.4'
-
 x-web-defaults:
   &web-defaults
   restart: unless-stopped
@@ -27,7 +26,6 @@ x-web-defaults:
     ACCOUNT_ALLOW_SIGN_UP: 'False'
     WEBPACK_LOADER_ENABLED: 'False'
     OCTOPRINT_TUNNEL_PORT_RANGE: '${OCTOPRINT_TUNNEL_PORT_RANGE-15853-15873}'
-
 services:
   ml_api:
     hostname: ml_api
@@ -41,7 +39,6 @@ services:
       #ML_API_TOKEN:
       HAS_GPU: 'False'
     command: bash -c "gunicorn --bind 0.0.0.0:3333 --workers 1 wsgi"
-
   obico-web:
     <<: *web-defaults
     hostname: obico-web
@@ -64,21 +61,18 @@ services:
         limits:
           memory: 1G
           cpus: '0.50'
-
   tasks:
     <<: *web-defaults
     networks:
       - proxynet
     hostname: tasks
     command: /app/run_celery.sh
-
   redis:
     hostname: redis
     networks:
       - proxynet
     restart: unless-stopped
     image: redis:5.0-alpine
-
 networks:
   proxynet:
     name: proxy_net
