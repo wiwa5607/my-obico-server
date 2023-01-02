@@ -25,7 +25,7 @@ django-safedelete==0.5.1
 Pillow==9.0.1
 django-hijack==2.1.10
 git+https://github.com/TheSpaghettiDetective/daphne@tsd_stable-2.5.0#egg=daphne
-asgiref==3.2.10
+asgiref==3.6.0
 # latest version of zope.interface is broken
 zope.interface==4.7.2
 channels==2.4.0
