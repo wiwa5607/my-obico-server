@@ -22,7 +22,7 @@ phonenumbers==8.13.3
 twilio==6.24.1
 celery[redis]==4.4.7
 django-safedelete==0.5.7
-Pillow==9.0.1
+Pillow==9.4.0
 django-hijack==2.3.0
 git+https://github.com/TheSpaghettiDetective/daphne@tsd_stable-2.5.0#egg=daphne
 asgiref==3.6.0
