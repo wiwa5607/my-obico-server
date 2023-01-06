@@ -9,7 +9,7 @@
     "postinstall": "patch-package"
   },
   "dependencies": {
-    "axios": "^0.27.0",
+    "axios": "^1.0.0",
     "bootstrap-vue": "^2.15.0",
     "core-js": "^3.6.4",
     "filesize": "^3.6.1",
