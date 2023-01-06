@@ -72,7 +72,7 @@ services:
     networks:
       - proxynet
     restart: unless-stopped
-    image: redis:5.0-alpine
+    image: redis:7.0-alpine
 networks:
   proxynet:
     name: proxy_net
