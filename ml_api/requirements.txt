@@ -1,6 +1,6 @@
 ipdb
 flask>=1.0
-redis==3.0.1
+redis==3.5.3
 newrelic==4.20.1.121
 sentry_sdk[flask]==1.5.10
 requests==2.28.1
