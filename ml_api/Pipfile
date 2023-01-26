@@ -7,7 +7,7 @@ name = "pypi"
 flask = ">=1.0"
 redis = "==3.5.3"
 newrelic = "==4.20.1.121"
-sentry-sdk = {version = "==1.12.1", extras = ["flask"]}
+sentry-sdk = {version = "==1.5.10", extras = ["flask"]}
 requests = "==2.21.0"
 gunicorn = "==20.1.0"
 ipdb = "==0.13.11"
