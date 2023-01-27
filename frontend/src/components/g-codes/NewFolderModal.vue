@@ -12,13 +12,13 @@
       <div class="my-2">
         <input
           ref="input"
+          v-model="newFolderName"
           type="text"
           name="name"
           placeholder="Folder name"
           class="input-lg"
           required="required"
-          v-model="newFolderName"
-        >
+        />
         <b-alert v-if="errorMessage" variant="danger" class="mt-3" show>
           {{ errorMessage }}
         </b-alert>
@@ -41,12 +41,8 @@ export default {
       default: null,
     },
     parentFolderId: {
-      type: Number,
+      type: String,
       default: null,
-    },
-    targetPrinterId: {
-      type: Number,
-      required: false,
     },
   },
 
@@ -89,7 +85,7 @@ export default {
       try {
         const newFolder = await axios.post(urls.gcodeFolders(), {
           name: this.newFolderName,
-          parent_folder: this.parentFolder
+          parent_folder: this.parentFolderId,
         })
 
         this.$emit('created', newFolder.data.id)

@@ -29,21 +29,18 @@ export default {
 
   data() {
     return {
-      authorizedApps: []
+      authorizedApps: [],
     }
   },
 
   created() {
     axios
       .get(urls.tunnels())
-      .then(response => {
+      .then((response) => {
         this.authorizedApps = response.data
       })
-      .catch(error => {
-        this.$swal.Reject.fire({
-          title: 'Oops',
-          text: error.message,
-        })
+      .catch((error) => {
+        this._showErrorPopup(error)
       })
   },
 
@@ -52,15 +49,12 @@ export default {
       axios
         .delete(urls.tunnel(id))
         .then(() => {
-          this.authorizedApps = this.authorizedApps.filter(app => app.id !== id)
+          this.authorizedApps = this.authorizedApps.filter((app) => app.id !== id)
         })
-        .catch(error => {
-          this.$swal.Reject.fire({
-            title: 'Oops',
-            text: error.message,
-          })
+        .catch((error) => {
+          this._showErrorPopup(error)
         })
-    }
+    },
   },
 }
 </script>
