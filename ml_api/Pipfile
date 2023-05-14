@@ -5,14 +5,14 @@ name = "pypi"
 
 [packages]
 flask = ">=1.0"
-redis = "==3.5.3"
-newrelic = "==4.20.1.121"
-sentry-sdk = {version = "==1.5.10", extras = ["flask"]}
+redis = "==3.0.1"
+newrelic = "==4.12.0.113"
 requests = "==2.21.0"
-gunicorn = "==20.1.0"
+gunicorn = "==19.9.0"
 ipdb = "==0.13.11"
 opencv-python = ">=3.4"
 opencv-contrib-python = ">=4.0"
+sentry-sdk = {version = "==1.5.10", extras = ["flask"]}
 
 [requires]
 python_version = "3.5"
