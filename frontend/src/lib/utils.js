@@ -53,3 +53,7 @@ export const downloadFile = (url, filename) => {
       URL.revokeObjectURL(href)
     })
 }
+
+export const formatWithoutDaylightSavingShift = (date, formattingStr) => {
+  return date.utcOffset(date._tzm).format(formattingStr)
+}

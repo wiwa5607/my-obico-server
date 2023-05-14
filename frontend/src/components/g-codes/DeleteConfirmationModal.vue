@@ -3,7 +3,6 @@
 </template>
 
 <script>
-import 'vue2-dropzone/dist/vue2Dropzone.min.css'
 import urls from '@config/server-urls'
 import axios from 'axios'
 
@@ -56,7 +55,7 @@ export default {
           this.$emit('deleted')
         })
         .catch((error) => {
-          this._showErrorPopup(error)
+          this._logError(error, 'Failed to delete item')
         })
     },
   },

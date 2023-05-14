@@ -6,16 +6,84 @@
         <b-row>
           <b-col lg="5">
             <div class="print-info">
-              <div class="card-container header">
-                <div class="info">
-                  <div class="status" :class="print.status.key">
-                    {{ print.status.title }}
+              <!-- Print details -->
+              <div class="card-container print-details">
+                <div v-if="currentIndex || currentIndex === 0" class="navigation-container">
+                  <b-button
+                    variant="outline-secondary"
+                    :disabled="!prevPrint"
+                    @click.prevent="switchToPrint(prevPrint)"
+                  >
+                    <i class="fas fa-chevron-left"></i>&nbsp;&nbsp;{{ PrevPrintButtonTitle }}
+                  </b-button>
+                  <div class="summary truncated-wrapper">
+                    <div class="date truncated">
+                      {{ print.started_at.format(absoluteDateFormat) }}
+                    </div>
                   </div>
-                  <div class="date">
-                    {{ print.ended_at ? print.ended_at.fromNow() : '-' }}
+                  <b-button
+                    variant="outline-secondary"
+                    :disabled="!nextPrint"
+                    @click.prevent="switchToPrint(nextPrint)"
+                  >
+                    {{ NextPrintButtonTitle }}&nbsp;&nbsp;<i class="fas fa-chevron-right"></i>
+                  </b-button>
+                </div>
+                <div>
+                  <div class="info-line">
+                    <div class="label">
+                      <div class="icon"><i class="fas fa-info"></i></div>
+                      <div class="title">Status</div>
+                    </div>
+                    <div class="value">
+                      <div class="print-status-color" :class="print.status.key">
+                        {{ print.status.title }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="info-line">
+                    <div class="label">
+                      <div class="icon"><i class="far fa-clock"></i></div>
+                      <div class="title">Start time</div>
+                    </div>
+                    <div class="value">{{ print.started_at.format(absoluteDateFormat) }}</div>
+                  </div>
+                  <div class="info-line">
+                    <div class="label">
+                      <div class="icon"><i class="far fa-clock"></i></div>
+                      <div class="title">End time</div>
+                    </div>
+                    <div class="value">
+                      {{ print.ended_at ? print.ended_at.format(absoluteDateFormat) : '-' }}
+                    </div>
+                  </div>
+                  <div class="info-line">
+                    <div class="label">
+                      <div class="icon"><i class="fas fa-clock"></i></div>
+                      <div class="title">Duration</div>
+                    </div>
+                    <div class="value">{{ print.duration || '-' }}</div>
+                  </div>
+                  <div class="info-line">
+                    <div class="label">
+                      <div class="icon"><i class="fas fa-ruler-horizontal"></i></div>
+                      <div class="title">Filament used</div>
+                    </div>
+                    <div class="value">
+                      {{ print.filament_used ? humanizedFilamentUsage(print.filament_used) : '-' }}
+                    </div>
                   </div>
                 </div>
               </div>
+              <!-- GCode details -->
+              <g-code-details
+                :file="print.g_code_file || { filename: print.filename }"
+                :show-open-button="
+                  print.g_code_file &&
+                  !print.g_code_file.resident_printer &&
+                  !print.g_code_file.deleted
+                "
+              />
               <!-- Printer -->
               <div class="card-container printer">
                 <div class="icon">
@@ -23,10 +91,12 @@
                     <use href="#svg-3d-printer" />
                   </svg>
                 </div>
-                <div class="info overflow-truncated-parent">
-                  <div class="title overflow-truncated">{{ print.printer.name }}</div>
+                <div class="info truncated-wrapper">
+                  <div class="title truncated" :title="print.printer.name">
+                    {{ print.printer.name }}
+                  </div>
                   <div
-                    class="subtitle overflow-truncated"
+                    class="subtitle truncated"
                     :class="[
                       printer
                         ? printer.isPrintable()
@@ -38,58 +108,28 @@
                     {{ printer ? printer.printabilityText() : 'Deleted' }}
                   </div>
                 </div>
-                <div v-if="printer" class="action">
+                <div
+                  v-if="
+                    printer &&
+                    print.g_code_file &&
+                    !print.g_code_file.resident_printer &&
+                    !print.g_code_file.deleted
+                  "
+                  class="action"
+                >
                   <button
                     class="btn btn-primary"
                     :disabled="!printer.isPrintable()"
                     @click="onRepeatPrintClicked"
                   >
                     <b-spinner v-if="isSending" small />
-                    <span v-else>Repeat print</span>
+                    <span v-else>Repeat Print</span>
                   </button>
-                </div>
-              </div>
-              <!-- File -->
-              <div class="card-container file">
-                <div class="icon">
-                  <i class="fas fa-file-code"></i>
-                </div>
-                <div class="info overflow-truncated-parent">
-                  <div class="title overflow-truncated">{{ print.filename }}</div>
-                  <div v-if="print.g_code_file" class="subtitle text-secondary overflow-truncated">
-                    <span>{{ print.g_code_file.filesize }}</span>
-                    <span v-if="print.g_code_file.created_at"
-                      >, created {{ print.g_code_file.created_at.fromNow() }}</span
-                    >
-                  </div>
-                </div>
-                <div v-if="print.g_code_file" class="action">
-                  <a
-                    class="btn btn-secondary"
-                    :href="`/g_code_files/cloud/${print.g_code_file.id}/`"
-                    >Open file</a
-                  >
-                </div>
-              </div>
-              <div class="card-container">
-                <div class="info-line">
-                  <div class="title">Start time</div>
-                  <div class="value">{{ print.started_at.format(absoluteDateFormat) }}</div>
-                </div>
-                <div class="info-line">
-                  <div class="title">End time</div>
-                  <div class="value">
-                    {{ print.ended_at ? print.ended_at.format(absoluteDateFormat) : '-' }}
-                  </div>
-                </div>
-                <div class="info-line">
-                  <div class="title">Duration</div>
-                  <div class="value">{{ print.duration ? print.duration : '-' }}</div>
                 </div>
               </div>
             </div>
           </b-col>
-          <b-col lg="7" class="mt-3 mt-lg-0">
+          <b-col lg="7">
             <div class="time-lapse">
               <div v-if="print.video_archived_at" class="card-container">
                 <h2 class="title">Time-Lapse video deleted</h2>
@@ -178,7 +218,6 @@
                                     variant="outline-primary"
                                     size="sm"
                                     :href="`/prints/shot-feedback/${print.id}/`"
-                                    target="_blank"
                                   >
                                     <i
                                       v-if="!print.need_print_shot_feedback"
@@ -259,7 +298,17 @@
                 </b-card>
               </div>
               <div v-else class="card-container">
-                <p class="text-secondary text-center mt-3">Time-Lapse video unavailable</p>
+                <p class="text-secondary mt-3">Time-Lapse video unavailable because:</p>
+                <ul>
+                  <li class="text-secondary mt-3">
+                    The Obico server is still processing the time-lapse;
+                  </li>
+                  <li class="text-secondary mt-3">
+                    Or, the print time was shorter than the threshold. You can change the threshold
+                    in
+                    <a :href="`/printers/${print.printer.id}/`">the printer settings.</a>
+                  </li>
+                </ul>
               </div>
             </div>
           </b-col>
@@ -274,12 +323,24 @@ import axios from 'axios'
 import moment from 'moment'
 import { getNormalizedP, downloadFile } from '@src/lib/utils'
 import urls from '@config/server-urls'
+import { getLocalPref } from '@src/lib/pref'
+import { humanizedFilamentUsage } from '@src/lib/formatters'
+import { user } from '@src/lib/page-context'
 import { normalizedPrint, PrintStatus, normalizedPrinter } from '@src/lib/normalizers'
 import PageLayout from '@src/components/PageLayout.vue'
 import VideoBox from '@src/components/VideoBox'
 import DetectiveWorking from '@src/components/DetectiveWorking'
 import FailureDetectionGauge from '@src/components/FailureDetectionGauge'
 import { sendToPrint, showRedirectModal } from '@src/components/g-codes/sendToPrint'
+import { restoreFilterValues, getFilterParams } from '@src/components/FilteringDropdown'
+import { restoreSortingValue } from '@src/components/SortingDropdown'
+import {
+  FilterOptions,
+  FilterLocalStoragePrefix,
+  SortingLocalStoragePrefix,
+  SortingOptions,
+} from '@src/views/PrintHistoryPage'
+import GCodeDetails from '@src/components/GCodeDetails.vue'
 
 export default {
   name: 'PrintPage',
@@ -289,6 +350,7 @@ export default {
     VideoBox,
     DetectiveWorking,
     FailureDetectionGauge,
+    GCodeDetails,
   },
 
   props: {
@@ -301,33 +363,55 @@ export default {
   data: function () {
     return {
       PrintStatus,
-      absoluteDateFormat: 'MMM M, YYYY H:mm A',
-      data: {
-        print: undefined,
-        predictions: undefined,
-        printer: undefined,
-      },
+      absoluteDateFormat: 'MMM D, YYYY h:mm a',
+      print: null,
+      predictions: [],
+      printer: null,
+      isLoading: true,
       isSending: false,
       currentPosition: 0,
       inflightAlertOverwrite: null,
       fullscreenUrl: null,
+      user: null,
+      currentPrint: null,
+
+      // Pagination
+      prevPrint: null,
+      nextPrint: null,
+      // Sorting for pagination
+      sortingValue: restoreSortingValue(SortingLocalStoragePrefix, SortingOptions),
+      // Filtering for pagination
+      filterLocalStoragePrefix: FilterLocalStoragePrefix,
+      filterOptions: FilterOptions,
+      filterValues: restoreFilterValues(FilterLocalStoragePrefix, FilterOptions),
     }
   },
 
   computed: {
-    // shortcuts
-    print() {
-      return this.data.print
+    PrevPrintButtonTitle() {
+      return this.sortingValue.direction.key === 'asc' ? 'Older' : 'Newer'
     },
-    predictions() {
-      return this.data.predictions
+    NextPrintButtonTitle() {
+      return this.sortingValue.direction.key === 'asc' ? 'Newer' : 'Older'
     },
-    printer() {
-      return this.data.printer
+    fileName() {
+      return this.print.g_code_file === null ? this.print.filename : this.print.g_code_file.filename
     },
+    currentPrintId() {
+      return this.currentPrint?.id || this.printId
+    },
+    currentIndex() {
+      if (this.currentPrint) {
+        return this.currentPrint.index
+      }
 
-    isLoading() {
-      return !!Object.values(this.data).filter((d) => d === undefined).length
+      const urlParams = new URLSearchParams(window.location.search)
+      let indexParam = urlParams.get('index')
+      if (!indexParam) {
+        return
+      }
+
+      return parseInt(indexParam)
     },
 
     normalizedP() {
@@ -361,7 +445,9 @@ export default {
   },
 
   created() {
+    this.user = user()
     this.fetchData()
+    this.fetchSiblingPrints()
   },
 
   mounted() {
@@ -375,36 +461,115 @@ export default {
 
   methods: {
     downloadFile,
+    humanizedFilamentUsage,
+
     async fetchData(clearPreviousData = true) {
       if (clearPreviousData) {
-        for (const key of Object.keys(this.data)) {
-          this.data[key] = undefined
-        }
+        this.print = null
+        this.predictions = []
+        this.printer = null
       }
 
+      this.isLoading = true
       try {
-        const printResponse = await axios.get(urls.print(this.printId))
-        this.data.print = normalizedPrint(printResponse.data)
+        const printResponse = await axios.get(urls.print(this.currentPrintId))
+        this.print = normalizedPrint(printResponse.data)
 
-        axios.get(this.print.prediction_json_url).then((response) => {
-          this.data.predictions = response.data
-        })
+        if (this.print.prediction_json_url) {
+          axios.get(this.print.prediction_json_url).then((response) => {
+            this.predictions = response.data
+          })
+        }
 
         axios
-          .get(urls.printer(this.print.printer.id))
+          .get(urls.printer(this.print.printer.id), { params: { with_archived: true } })
           .then((response) => {
-            this.data.printer = normalizedPrinter(response.data)
+            this.printer = normalizedPrinter(response.data)
           })
           .catch((error) => {
             // Printer could be old and deleted from account (404 error)
-            this.data.printer = null
+            this.printer = null
             if (error?.response?.status !== 404) {
-              this._showErrorPopup(error, 'Failed to fetch printer information')
+              this._logError(error, 'Failed to fetch printer information')
             }
           })
+          .finally(() => {
+            this.isLoading = false
+          })
       } catch (error) {
-        this._showErrorPopup(error)
+        console.log(error)
       }
+    },
+    switchToPrint(print) {
+      this.currentPrint = print
+      const newUrl = `/prints/${print.id}/?index=${print.index}`
+      window.history.replaceState({}, '', newUrl)
+      this.fetchData()
+      this.fetchSiblingPrints()
+    },
+    fetchSiblingPrints() {
+      if (!this.currentIndex && this.currentIndex !== 0) {
+        return
+      }
+
+      const prevExists = this.currentIndex > 0
+      const start = prevExists ? this.currentIndex - 1 : 0
+      const limit = prevExists ? 3 : 2
+
+      axios
+        .get(urls.prints(), {
+          params: {
+            start,
+            limit,
+            ...getFilterParams(
+              this.filterOptions,
+              this.filterValues,
+              (filterOptionKey, filterValueKey) => {
+                if (filterOptionKey === 'timePeriod') {
+                  return this.filterOptions[filterOptionKey].buildQueryParam(
+                    filterValueKey,
+                    getLocalPref(`${FilterLocalStoragePrefix}-timePeriod-dateFrom`) || null,
+                    getLocalPref(`${FilterLocalStoragePrefix}-timePeriod-dateTo`) || null,
+                    this.user
+                  )
+                }
+              }
+            ),
+            sorting: `${this.sortingValue.sorting.key}_${this.sortingValue.direction.key}`,
+          },
+        })
+        .then((response) => {
+          const data = response.data
+          let prev
+          let next
+          if (prevExists) {
+            if (data.length === 3 && data[1].id === this.currentPrintId) {
+              // prev and next exist
+              prev = data[0]
+              next = data[2]
+            } else if (data.length === 2 && data[1].id === this.currentPrintId) {
+              // only prev exists
+              prev = data[0]
+            } else {
+              // no prev or next
+              return
+            }
+          } else {
+            if (data.length === 2 && data[0].id === this.currentPrintId) {
+              // only next exists
+              next = data[1]
+            } else {
+              // no prev or next
+              return
+            }
+          }
+
+          this.prevPrint = prev ? { id: prev.id, index: this.currentIndex - 1 } : null
+          this.nextPrint = next ? { id: next.id, index: this.currentIndex + 1 } : null
+        })
+        .catch((error) => {
+          this._logError(error)
+        })
     },
     onTimeUpdate(currentPosition) {
       this.currentPosition = currentPosition
@@ -438,7 +603,7 @@ export default {
         Swal: this.$swal,
         onPrinterStatusChanged: () => {
           this.isSending = false
-          showRedirectModal(this.$swal, () => this.fetchData())
+          showRedirectModal(this.$swal, () => this.fetchData(), this.printer.id)
         },
       })
     },
@@ -456,48 +621,72 @@ export default {
 .print-info
   display: flex
   flex-direction: column
-  gap: 15px
+  gap: var(--gap-between-blocks)
 
-.header
-  .date
-    font-size: 1.125rem
-  .status
-    font-weight: bold
-    font-size: .875rem
-    &.cancelled
-      color: var(--color-danger)
-    &.finished
-      color: var(--color-success)
+.print-details
+  overflow: hidden
+  display: flex
+  flex-direction: column
+  gap: 10px
+  .navigation-container
+    display: flex
+    justify-content: space-between
+    align-items: center
+    gap: 1rem
+    margin: -1.5em
+    margin-bottom: .5em
+    padding: 1em 1.5em
+    background-color: var(--color-surface-primary)
+    .btn
+      flex-shrink: 0
+    .summary
+      text-align: center
+      @media (max-width: 576px)
+        display: none
+  .info-line
+    display: flex
+    align-items: center
+    justify-content: space-between
+    margin-bottm: 6px
+    padding: 6px 0
+    gap: .5rem
+    border-top: 1px solid var(--color-divider-muted)
+    &:first-of-type
+      border-top: none
+    .label
+      display: flex
+      align-items: center
+      flex: 1
+      gap: .5rem
+      line-height: 1.1
+      .icon
+        opacity: .5
+        width: 1rem
+        text-align: center
+    .value
+      font-weight: bold
 
-.printer, .file
+.printer
   display: flex
   align-items: center
-  gap: 6px
+  gap: .7rem
+  .title
+    font-weight: bold
   .info
     flex: 1
   .icon
-    flex: 0 0 50px
+    flex: 0 0 2rem
     text-align: center
     *
       font-size: 2rem
-
-.info-line
-  display: flex
-  flex-direction: row
-  justify-content: space-between
-  border-bottom: 1px solid var(--color-divider-muted)
-  padding: 4px 0
-  &:last-child
-    border-bottom: none
-.title
-  font-weight: bold
 
 .time-lapse
   .title
     font-size: 1.5rem
     font-weight: normal
     margin-bottom: 1rem
-
+  @media (max-width: 991px)
+    margin-top: var(--gap-between-blocks)
   ::v-deep
     .card
       border-radius: var(--border-radius-lg)

@@ -22,7 +22,7 @@
             <hr />
             <br /><br />
             <p class="text-center">
-              Obico let you monitor and control your printer from anywhere, on your phone.
+              Obico lets you monitor and control your printer from anywhere, on your phone.
             </p>
             <a class="btn btn-block btn-primary" href="/accounts/signup/"
               >Sign up for a free Obico account</a
@@ -54,6 +54,7 @@ export default {
       shareToken: null,
       videoAvailable: {},
       loading: true,
+      isWebrtcOpened: false,
       webrtc: WebRTCConnection(),
     }
   },
@@ -65,10 +66,14 @@ export default {
       (data) => {
         this.printer = normalizedPrinter(data, this.printer)
         this.loading = false
+
+        if (!this.isWebrtcOpened) {
+          this.webrtc.openForShareToken(this.shareToken)
+          this.isWebrtcOpened = true
+        }
       }
     )
     this.printerComm.connect()
-    this.webrtc.openForShareToken(this.shareToken)
   },
 }
 </script>

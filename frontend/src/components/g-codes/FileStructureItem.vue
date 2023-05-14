@@ -4,17 +4,27 @@
     :class="{ disabled: isDisabled, 'move-modal': isMoveModal }"
     @click="() => !isDisabled && $emit('click')"
   >
+    <div v-if="selectable" class="checkbox-wrapper" :class="{ isSelected }">
+      <b-form-checkbox
+        size="md"
+        :checked="isSelected"
+        @click.native.capture.stop.prevent="isSelected = !isSelected"
+      ></b-form-checkbox>
+    </div>
     <div class="item-info">
       <div class="filename">
-        <span v-if="!isFolder">
-          <i class="fas fa-file-code mr-1"></i>
-          {{ item.filename }}
-        </span>
-        <span v-else-if="isFolder">
-          <i class="fas fa-folder mr-1"></i>
-          {{ item.name }}
-        </span>
+        <div class="thumbnail-wrapper" :class="{ folder: isFolder }">
+          <div v-if="thumbnailUrl" class="thumbnail">
+            <img :src="thumbnailUrl" />
+          </div>
+          <div v-else class="placeholder">
+            <i v-if="isFolder" class="fas fa-folder"></i>
+            <i v-else class="fas fa-file-code"></i>
+          </div>
+        </div>
+        <span class="truncated">{{ isFolder ? item.name : item.filename }}</span>
       </div>
+
       <div class="size">
         <span v-if="!isFolder">{{ item.filesize }}</span>
         <span v-if="isFolder">{{ item.numItems }} item(s)</span>
@@ -92,6 +102,21 @@ export default {
       type: Boolean,
       default: false,
     },
+    selected: {
+      type: Boolean,
+      default: false,
+    },
+    selectable: {
+      type: Boolean,
+      default: false,
+    },
+  },
+
+  data: function () {
+    return {
+      thumbnailUrl: null,
+      isSelected: this.selected,
+    }
   },
 
   computed: {
@@ -101,6 +126,25 @@ export default {
     isDisabled() {
       return (this.isMoveModal && !this.isFolder) || this.disabled
     },
+  },
+
+  watch: {
+    isSelected(newValue) {
+      this.$emit('selectedChanged', this.item, newValue)
+    },
+    selected(newValue) {
+      this.isSelected = newValue
+    },
+  },
+
+  created() {
+    let thumbnailProps = ['thumbnail3_url', 'thumbnail2_url', 'thumbnail1_url']
+    for (const t of thumbnailProps) {
+      if (this.item[t]) {
+        this.thumbnailUrl = this.item[t]
+        break
+      }
+    }
   },
 }
 </script>
@@ -141,7 +185,29 @@ export default {
         color: var(--color-text-primary)
         margin-left: 0
 
+    .thumbnail-wrapper
+      flex: 0 0 32px
+      display: inline-flex
+      height: 32px
+      border-radius: var(--border-radius-xs)
+      background-color: var(--color-surface-primary)
+      overflow: hidden
+      align-items: center
+      justify-content: center
+      .thumbnail
+        width: 100%
+        height: 100%
+        img
+          height: 100%
+          width: auto
+      &.folder
+        background: none
+        font-size: 1.25em
+
     .filename
+      display: flex
+      align-items: center
+      gap: .5rem
       text-overflow: ellipsis
       overflow: hidden
       white-space: nowrap
@@ -193,4 +259,19 @@ export default {
     background: var(--color-danger)
   &.finished
     background: var(--color-success)
+
+.checkbox-wrapper
+  display: flex
+  align-items: flex-start
+  justify-content: flex-end
+  margin-left: -.5rem
+  margin-right: .5rem
+  ::v-deep .custom-checkbox .custom-control-label::before
+    border-radius: var(--border-radius-xs)
+    border-color: var(--color-divider)
+  &.isSelected
+    ::v-deep .custom-checkbox .custom-control-label::before
+      border-color: #00C4B4
+  @media (max-width: 576px)
+    display: none
 </style>

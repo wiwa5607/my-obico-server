@@ -511,7 +511,7 @@ export default {
               this.setSavingStatus('printer_name', false)
             })
             .catch((error) => {
-              this._showErrorPopup(error, 'Failed to update printer name')
+              this._logError(error, 'Failed to update printer name')
             })
         }, delayInfo['delay'])
         return
@@ -815,10 +815,10 @@ pre
       background-image: url('/static/img/tick_dark.svg')
       background-size: $size $size
       position: absolute
-      top: calc(50% - #{$size / 2})
-      left: calc(50% - #{$size / 2})
-      bottom: calc(50% - #{$size / 2})
-      right: calc(50% - #{$size / 2})
+      top: calc(50% - $size / 2)
+      left: calc(50% - $size / 2)
+      bottom: calc(50% - $size / 2)
+      right: calc(50% - $size / 2)
 .success-checkmark
   width: 6rem
   height: 6rem

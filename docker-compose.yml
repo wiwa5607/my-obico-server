@@ -38,6 +38,7 @@ services:
       FLASK_APP: 'server.py'
       #ML_API_TOKEN:
       HAS_GPU: 'False'
+      MODEL_FILE: 'model-weights.darknet'
     command: bash -c "gunicorn --bind 0.0.0.0:3333 --workers 1 wsgi"
   obico-web:
     <<: *web-defaults

@@ -2,6 +2,8 @@ import moment from 'moment'
 import get from 'lodash/get'
 import filesize from 'filesize'
 import semverGte from 'semver/functions/gte'
+import { humanizedDuration } from '@src/lib/formatters'
+import { gcodeMetadata } from '@src/components/g-codes/gcode-metadata'
 
 export const toMomentOrNull = (datetimeStr) => {
   if (!datetimeStr) {
@@ -11,9 +13,10 @@ export const toMomentOrNull = (datetimeStr) => {
 }
 
 export const PrintStatus = {
-  Printing: { key: 'printing', title: 'Printing...' },
-  Finished: { key: 'finished', title: 'Finished' },
-  Cancelled: { key: 'cancelled', title: 'Cancelled' },
+  Printing: { key: 'printing', title: 'Printing...', isActive: true },
+  Paused: { key: 'paused', title: 'Paused', isActive: true },
+  Finished: { key: 'finished', title: 'Finished', isActive: false },
+  Cancelled: { key: 'cancelled', title: 'Cancelled', isActive: false },
 }
 
 // ––––––––––––––––––––––
@@ -26,8 +29,7 @@ export const normalizedPrint = (print) => {
   print.ended_at = toMomentOrNull(print.ended_at)
   if (print.ended_at) {
     const duration = moment.duration(print.ended_at.diff(print.started_at))
-    print.duration = duration.hours() ? `${duration.hours()}h ` : ''
-    print.duration += `${duration.minutes()}m`
+    print.duration = humanizedDuration(duration.asSeconds())
   }
   print.has_alerts = Boolean(print.alerted_at)
   print.printShotFeedbackEligible =
@@ -36,6 +38,8 @@ export const normalizedPrint = (print) => {
     ? print.cancelled_at
       ? PrintStatus.Cancelled
       : PrintStatus.Finished
+    : print.paused_at
+    ? PrintStatus.Paused
     : PrintStatus.Printing
   if (print.printer) {
     print.printer = normalizedPrinter(print.printer)
@@ -47,6 +51,10 @@ export const normalizedPrint = (print) => {
 }
 
 export const normalizedGcode = (gcode) => {
+  if (!gcode) {
+    return
+  }
+
   gcode.created_at = toMomentOrNull(gcode.created_at)
   gcode.updated_at = toMomentOrNull(gcode.updated_at)
   gcode.deleted = toMomentOrNull(gcode.deleted)
@@ -85,6 +93,44 @@ export const normalizedGcode = (gcode) => {
     gcode.totalPrints = gcode.print_set.length
   }
 
+  // Normalize metadata
+  gcode.metadata = {}
+
+  if (gcode.metadata_json) {
+    // obico file with metadata
+    gcode.metadata = JSON.parse(gcode.metadata_json)
+  } else if (gcode.analysis) {
+    // octoprint file
+    gcode.metadata.object_height = gcode.analysis.dimensions?.height
+    gcode.metadata.estimated_time = gcode.analysis.estimatedPrintTime
+
+    let filament_total
+    if (gcode.analysis.filament) {
+      const tools = Object.keys(gcode.analysis.filament)
+      if (tools.length) {
+        filament_total = 0
+        tools.forEach((key) => {
+          filament_total += gcode.analysis.filament[key].length
+        })
+      }
+    }
+    gcode.metadata.filament_total = filament_total
+  } else {
+    // either obico file without metadata or klipper file
+    gcodeMetadata.forEach((v) => {
+      if (gcode[v.name]) {
+        gcode.metadata[v.name] = gcode[v.name]
+      }
+    })
+  }
+
+  // leave only non-null metadata
+  Object.keys(gcode.metadata).forEach((key) => {
+    if (gcode.metadata[key] === null || gcode.metadata[key] === undefined) {
+      delete gcode.metadata[key]
+    }
+  })
+
   return gcode
 }
 
@@ -99,6 +145,9 @@ export const normalizedPrinter = (newData, oldData) => {
   const printerMixin = {
     createdAt: function () {
       return toMomentOrNull(this.created_at)
+    },
+    progressCompletion: function () {
+      return get(this, 'status.progress.completion', 0)
     },
     isOffline: function () {
       return get(this, 'status', null) === null
@@ -154,7 +203,7 @@ export const normalizedPrinter = (newData, oldData) => {
     },
     // Printing availability
     isPrintable: function () {
-      return !this.isOffline() && !this.isDisconnected() && !this.isActive()
+      return !this.isOffline() && !this.isDisconnected() && !this.isActive() && !this.archived_at
     },
     printabilityText: function () {
       return this.isPrintable() ? 'Ready' : 'Unavailable'

@@ -13,11 +13,11 @@
       <ul class="list-unstyled m-0">
         <li v-if="isEnt && !user.is_pro" :class="{ active: path === '/ent_pub/pricing/' }">
           <a href="/ent_pub/pricing/" class="primary">
-            <i class="fas fa-star"></i>
+            <font-awesome-icon icon="star" />
             Upgrade to Pro
           </a>
         </li>
-        <li v-if="user" :class="{ active: path === '/printers/' }">
+        <li v-if="user" :class="{ active: path.includes('/printers/') }">
           <a href="/printers/">
             <svg width="1.4em" height="1.4em" style="margin-bottom: 5px">
               <use href="#svg-3d-printer" />
@@ -26,19 +26,25 @@
             Printers
           </a>
         </li>
+        <li v-if="user" :class="{ active: path.includes('/g_code_') }">
+          <a href="/g_code_folders/cloud/">
+            <font-awesome-icon icon="fa-file-code" />
+            G-Codes
+          </a>
+        </li>
         <li
           v-if="user"
           :class="{ active: path.includes('/print_history/') || path.includes('/prints/') }"
         >
           <a href="/print_history/">
-            <i class="fas fa-history"></i>
+            <font-awesome-icon icon="fa-calendar-days" />
             Print History
           </a>
         </li>
-        <li v-if="user" :class="{ active: path.includes('/g_code_') }">
-          <a href="/g_code_folders/cloud/">
-            <i class="fas fa-file-code"></i>
-            G-Codes
+        <li v-if="user" :class="{ active: path.includes('/stats/') }">
+          <a href="/stats/">
+            <font-awesome-icon icon="fa-chart-pie" />
+            Statistics
           </a>
         </li>
       </ul>
@@ -46,19 +52,19 @@
         <ul class="list-unstyled m-0">
           <li v-if="isEnt" :class="{ active: path === '/ent_pub/pricing/' }">
             <a href="/ent_pub/pricing/">
-              <i class="fas fa-dollar-sign"></i>
+              <font-awesome-icon icon="fa-money-check-dollar" />
               Pricing
             </a>
           </li>
           <li>
             <a href="https://www.obico.io/help/" target="_blank">
-              <i class="fas fa-question"></i>
+              <font-awesome-icon icon="fa-circle-question" />
               Help
             </a>
           </li>
           <li>
             <a href="https://obico.io/discord" target="_blank">
-              <i class="fas fa-comments"></i>
+              <font-awesome-icon icon="fa-brands fa-discord" />
               Community
             </a>
           </li>
@@ -67,17 +73,18 @@
           </li>
           <li v-if="user" :class="{ active: path === '/printer_events/' }">
             <a href="/printer_events/">
-              <i class="fas fa-bell position-relative">
+              <div class="position-relative">
+                <font-awesome-icon icon="fas fa-bell" />
                 <span v-if="hasUnseenPrinterEvents" class="badge">{{
                   unseenPrinterEventsDisplay
                 }}</span>
-              </i>
+              </div>
               <span class="trim-text">Notifications</span>
             </a>
           </li>
-          <li v-if="user" :class="{ active: path === '/user_preferences/' }">
+          <li v-if="user" :class="{ active: path.includes('/user_preferences/') }">
             <a href="/user_preferences/">
-              <i class="fas fa-cog"></i>
+              <font-awesome-icon icon="fas fa-cog" />
               <span class="trim-text">Preferences</span>
             </a>
           </li>
@@ -88,7 +95,7 @@
     <div
       class="content-wrapper"
       :class="{
-        'hide-top-nav': !$slots.topBarLeft && !$slots.topBarRight,
+        'hide-top-nav': (!$slots.topBarLeft && !$slots.topBarRight) || hideHeader,
       }"
     >
       <!-- Top-bar -->
@@ -113,7 +120,9 @@
       </b-navbar>
       <!-- Page content -->
       <div class="page-content">
-        <content-top v-if="layoutSections.contentTop"></content-top>
+        <content-top
+          v-if="layoutSections.contentTop && !path.match('\/printers\/[0-9]+\/control\/')"
+        ></content-top>
         <slot name="content"></slot>
       </div>
     </div>
@@ -156,6 +165,10 @@ export default {
   computed: {
     inMobileWebView() {
       return inMobileWebView()
+    },
+    hideHeader() {
+      const urlParams = new URLSearchParams(window.location.search)
+      return urlParams.get('hide_header') === 'true'
     },
     hasUnseenPrinterEvents() {
       return get(this.user, 'unseen_printer_events', 0) > 0
@@ -268,11 +281,13 @@ export default {
         &.dropdown-toggle
           cursor: pointer
           padding-bottom: 20px
-        i
+        i, ::v-deep .svg-inline--fa
           margin-right: 0
           display: block
           font-size: 1.4em
           margin-bottom: 5px
+        ::v-deep .svg-inline--fa
+          margin: 0 auto 5px
         .badge
           border-radius: 2em
           position: absolute
@@ -280,7 +295,7 @@ export default {
           right: 2em
           padding: 0.25em 0.3em
           font-family: var(--default-font-family)
-          font-size: 60%
+          font-size: .714rem
           font-weight: bold
           color: var(--color-on-danger)
           background-color: var(--color-danger)
@@ -335,6 +350,15 @@ export default {
   z-index: 100
   box-shadow: var(--shadow-top-nav)
   justify-content: space-between
+
+  ::v-deep .action-panel
+    .action-btn
+      box-sizing: border-box
+      width: 36px
+      padding-left: 0
+      padding-right: 0
+      @media (max-width: 768px)
+        display: none
 
 .is-in-mobile .top-nav
   padding-left: 15px
@@ -410,24 +434,10 @@ export default {
     .clickable-area
       margin: -0.25rem -0.75rem
       padding: 0.25rem 0.75rem
-    i
+    i, .custom-svg-icon
       width: 20px
       margin-right: .5rem
-
-::v-deep .active-filter-notice
-  display: flex
-  align-items: center
-  justify-content: space-between
-  padding: 0.5rem 1rem
-  background-color: var(--color-surface-secondary)
-  margin: calc(-1 * var(--gap-between-blocks)) -15px var(--gap-between-blocks)
-  .filter
-    color: var(--color-primary)
-  .action-btn
-    color: var(--color-text-primary)
-
-  @media (max-width: 768px)
-    font-size: .875rem
-    margin-left: 0
-    margin-right: 0
+  .b-dropdown-text
+    padding-left: 0.75rem
+    padding-right: 0.75rem
 </style>

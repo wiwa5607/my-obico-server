@@ -3,7 +3,7 @@ id: config
 title: Configurations
 ---
 
-Following Klipper toolchain's convention, the configuration file for **Obico for Klipper** is typically located at `~/klipper_config/moonraker-obico.cfg`
+Following Klipper toolchain's convention, the configuration file for **Obico for Klipper** is typically located at `~/printer_data/config/moonraker-obico.cfg`
 
 :::caution
 You need to restart the service for any change to take effect:
@@ -28,18 +28,26 @@ port = 7125
 disable_video_streaming = False
 
 # CAUTION: Don't set this section unless you know what you are doing
-#   In most cases webcam configuration will be automatically retrived from moonraker
+#   In most cases webcam configuration will be automatically retrieved from moonraker
 #
 # snapshot_url = http://127.0.0.1:8080/?action=snapshot
 # stream_url = http://127.0.0.1:8080/?action=stream
+# target_fps = 25
 # flip_h = False
 # flip_v = False
 # rotate_90 = False
 # aspect_ratio_169 = False
 
 [logging]
-path = /home/pi/klipper_logs/moonraker-obico.log
+path = /home/pi/printer_data/logs/moonraker-obico.log
 level = INFO
+
+[tunnel]
+# CAUTION: Don't modify the settings below unless you know what you are doing
+# dest_host = 127.0.0.1
+# dest_port = 80
+# dest_is_ssl = False
+
 ```
 
 ## `[server]` section {#server-section}
@@ -66,6 +74,7 @@ Set values in this section only when **Obico for Klipper** can't obtain these co
 
 - `snapshot_url`:
 - `stream_url`:
+- `target_fps`:
 - `flip_h`:
 - `flip_v`:
 - `rotate_90`:
@@ -74,4 +83,12 @@ Set values in this section only when **Obico for Klipper** can't obtain these co
 ## `[logging]` section {#logging-section}
 
 - `path`: The path to the log file. Will be automatically rotated at 5MB size.
-- `level`: Default to `INFO`. Set to `DEBUG` to see *a lot* more details in the logs
+- `level`: Default to `INFO`. Set to `DEBUG` to see _a lot_ more details in the logs
+
+## `[tunnel]` section {#tunnel-section}
+
+The configuration specifically for Klipper Tunnel. Most of the time you should just leave them as default.
+
+- `dest_host`: Default to `127.0.0.1`. The hostname or IP address that you want to the tunnel request to be sent to. It is typically the same as the hostname/IP you enter in the browser to use Mainsail/Fluidd. For example, `mainsailos.local`, or `192.168.0.32`. Do NOT include "http://" or the port number here.
+- `dest_port`: Default to `80`. The port that you want to the tunnel request to be sent to. This is typically 80 (default).
+- `dest_is_ssl`: Default to `False`. You almost should never set this to `True` unless you do know that your Klipper only be accessed by SSL.

@@ -68,7 +68,7 @@ body {
 }
 
 button, .btn {
-  border-width: 2px;
+  border-width: 1px;
   border-radius: 300px;
 
   &.no-corner {
@@ -133,7 +133,7 @@ button, .btn {
 
   p {
     margin: 0;
-    font-size: 12px;
+    font-size: .875rem;
   }
 
   @media (max-width: 768px) {
@@ -616,7 +616,7 @@ a {
   color: var(--color-text-primary);
 }
 
-input, input.form-control {
+input, input.form-control, select.form-control {
   background-color: var(--color-input-background);
   border: 1px solid var(--color-input-background);
   border-radius: var(--border-radius-sm);
@@ -903,13 +903,117 @@ div[id^="b-modal-"] {
   }
 }
 
-.overflow-truncated-parent {
+.truncated-wrapper {
   overflow: hidden;
 }
 
-.overflow-truncated {
+.truncated {
   max-width: 100%;
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
+}
+
+.b-dropdown-text {
+  font-weight: normal;
+}
+
+.dropdown-menu.scrollable {
+  max-height: calc(100vh - 75px);
+  overflow-y: auto;
+}
+
+.dropdown-text-group {
+  display: flex;
+  align-items: center;
+  .text {
+    display: flex;
+    flex-direction: column;
+    .subtitle {
+      font-size: 0.75rem;
+      color: var(--color-text-secondary)
+    }
+  }
+}
+
+.section-title {
+  font-weight: bold;
+  font-size: 1.5rem;
+  padding-bottom: .25rem;
+  border-bottom: 1px solid var(--color-divider);
+  margin-bottom: 1.5rem;
+}
+
+.swal2-checkbox {
+  background: none;
+  font-size: 1rem;
+}
+
+
+.btn.ghost {
+  text-decoration: none;
+  color: var(--color-text-primary);
+  outline: none;
+  box-shadow: none;
+
+  &:hover {
+    opacity: 0.9;
+  }
+}
+
+.btn-warning {
+  background-color: var(--color-warning);
+  color: var(--color-on-warning);
+}
+
+
+.custom-button {
+  padding: 0.5rem 1.5rem;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-width: 1px;
+  flex-shrink: 0;
+}
+
+.print-status-bg {
+  &.finished {
+    background-color: var(--color-success);
+  }
+  &.cancelled {
+    background-color: var(--color-danger);
+  }
+  &.printing {
+    background-color: var(--color-text-primary);
+  }
+  &.paused {
+    background-color: var(--color-warning);
+  }
+}
+
+.print-status-color {
+  &.finished {
+    color: var(--color-success);
+  }
+  &.cancelled {
+    color: var(--color-danger);
+  }
+  &.printing {
+    color: var(--color-text-primary);
+  }
+  &.paused {
+    color: var(--color-warning);
+  }
+}
+
+
+.btn.btn-background {
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+
+  &:hover {
+    opacity: .8;
+  }
 }

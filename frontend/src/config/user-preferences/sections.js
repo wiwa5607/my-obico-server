@@ -3,9 +3,16 @@ import notificationPlugins from '@src/notifications/plugins'
 import { inMobileWebView, onlyNotifications } from '@src/lib/page-context'
 
 const defaultSections = {
+  GeneralPreferences: {
+    title: 'General',
+    faIcon: 'fa-solid fa-gear',
+    importComponent: () => import('@src/components/user-preferences/GeneralPreferences'),
+    route: routes.GeneralPreferences,
+    isHidden: inMobileWebView() || onlyNotifications(),
+  },
   ThemePreferences: {
     title: 'Appearance',
-    faIcon: 'fas fa-magic',
+    faIcon: 'fa-solid fa-wand-magic-sparkles',
     importComponent: () => import('@src/components/user-preferences/ThemePreferences'),
     route: routes.ThemePreferences,
     isHidden:

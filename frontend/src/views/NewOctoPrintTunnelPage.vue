@@ -42,7 +42,9 @@
                 </h3>
                 <div class="pb-1">
                   <i class="feature-check fas fa-check-circle"></i
-                  ><span class="feature-text">Unlimited Secure Tunneling to your OctoPrint</span>
+                  ><span class="feature-text"
+                    >Unlimited Secure Tunnel to your OctoPrint/Klipper</span
+                  >
                 </div>
                 <div class="pb-1">
                   <i class="feature-check fas fa-check-circle"></i
@@ -375,7 +377,7 @@ export default {
           })
           .catch((error) => {
             this.performingAuthRequest = false
-            this._showErrorPopup(error)
+            this._logError(error)
           })
       }
     },

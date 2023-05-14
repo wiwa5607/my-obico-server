@@ -84,8 +84,12 @@
     </div>
 
     <div :class="webcamRotateClass">
-      <div class="webcam_fixed_ratio" :class="webcamRatioClass">
-        <div class="webcam_fixed_ratio_inner full">
+      <div
+        class="webcam_fixed_ratio"
+        :class="webcamRatioClass"
+        :style="{ transform: `rotate(-${videoRotationDeg}deg)` }"
+      >
+        <div class="webcam_fixed_ratio_inner">
           <img
             v-if="taggedSrc !== printerStockImgSrc"
             class="tagged-jpg"
@@ -93,14 +97,18 @@
             :src="taggedSrc"
             :alt="printer.name + ' current image'"
           />
-          <svg v-else class="poster-placeholder">
+          <svg
+            v-else
+            class="poster-placeholder"
+            :style="{ transform: `rotate(${videoRotationDeg}deg)` }"
+          >
             <use :href="printerStockImgSrc" />
           </svg>
         </div>
-        <div v-show="showMJpeg" class="webcam_fixed_ratio_inner ontop full">
+        <div v-show="showMJpeg" class="webcam_fixed_ratio_inner ontop">
           <img class="tagged-jpg" :src="mjpgSrc" />
         </div>
-        <div v-show="showVideo" class="webcam_fixed_ratio_inner ontop full">
+        <div v-show="showVideo" class="webcam_fixed_ratio_inner ontop">
           <video
             ref="video"
             class="remote-video"
@@ -117,12 +125,23 @@
         </div>
       </div>
     </div>
+
+    <div class="extra-controls">
+      <div
+        v-if="showVideo || showVideo || taggedSrc !== printerStockImgSrc"
+        class="video-control-btn"
+        @click="onRotateLeftClicked"
+      >
+        <font-awesome-icon icon="fa-solid fa-rotate-left" />
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
 import get from 'lodash/get'
 import ifvisible from 'ifvisible'
+import { getLocalPref, setLocalPref } from '@src/lib/pref'
 
 import Janus from '@src/lib/janus'
 import { toArrayBuffer } from '@src/lib/utils'
@@ -184,6 +203,10 @@ export default {
       type: Boolean,
       required: true,
     },
+    showBitrate: {
+      type: Boolean,
+      default: true,
+    },
   },
 
   data() {
@@ -201,6 +224,7 @@ export default {
       videoLoading: false,
       printerStockImgSrc: '#svg-3d-printer',
       mjpgSrc: null,
+      customRotationDeg: getLocalPref('webcamRotationDeg', 0),
     }
   },
 
@@ -214,15 +238,12 @@ export default {
     showMJpeg() {
       return this.mjpgSrc && this.stickyStreamingSrc !== 'IMAGE'
     },
+    videoRotationDeg() {
+      const rotation = this.printer.settings.webcam_rotate90 ? 90 : 0 + this.customRotationDeg
+      return rotation % 360
+    },
     webcamRotateClass() {
-      switch (this.printer.settings.webcam_rotate90) {
-        case true:
-          return 'webcam_rotated'
-        case false:
-          return 'webcam_unrotated'
-        default:
-          return 'webcam_unrotated'
-      }
+      return `webcam_rotate_${this.videoRotationDeg}`
     },
     webcamRatioClass() {
       switch (this.printer.settings.ratio169) {
@@ -280,7 +301,13 @@ export default {
         onSlowLink: this.onSlowLink,
         onTrackMuted: () => (this.trackMuted = true),
         onTrackUnmuted: () => (this.trackMuted = false),
-        onBitrateUpdated: (bitrate) => (this.currentBitrate = bitrate.value),
+        onBitrateUpdated: (bitrate) => {
+          if (this.showBitrate) {
+            this.currentBitrate = bitrate.value
+          } else {
+            this.$emit('onBitrateUpdated', bitrate)
+          }
+        },
         onMJpegData: this.mjpegStreamDecoder.onMJpegChunk,
       })
 
@@ -303,6 +330,11 @@ export default {
   },
 
   methods: {
+    onRotateLeftClicked() {
+      this.customRotationDeg = this.customRotationDeg + 90
+      setLocalPref('webcamRotationDeg', this.customRotationDeg % 360)
+      this.$emit('onRotateLeftClicked', this.customRotationDeg)
+    },
     onCanPlay() {
       this.videoLoading = false
       if (!this.autoplay) {
@@ -397,7 +429,7 @@ export default {
       this.$swal.Prompt.fire({
         title: 'Video frames dropped',
         html: `
-          <p>The video frames are getting dropped because there is a bandwidth bottleneck along the route it they take to travel from your Raspberry Pi to your computer. The bottleneck can be anywhere but in most cases <Text bold>it's either your computer's internet connection, or your Raspberry Pi's</Text>.</p>
+          <p>The video frames are getting dropped because there is most likely a bandwidth bottleneck along the route they travel from your Raspberry Pi to your computer. The bottleneck can be anywhere, but in most cases, <Text bold>it is either your computer's internet connection, or your Raspberry Pi's</Text>.</p>
           <p>Make sure your computer is connected to the same network as your Pi. If you still see this warning, you need to trouble-shoot your computer's Wi-Fi connection, probably by moving closer to the Wi-Fi router.</p>
           <p>If the webcam stream is smooth when your computer is on the same Wi-Fi network as your Pi, the bottleneck is likely with the upload speed of your internet connection. You need to run a speed test to make sure you have high-enough upload speed, as well as <b>low latency (ping)</b>.</p>
           <p>Check out <a target="_blank" href="https://www.obico.io/docs/user-guides/webcam-feed-is-laggy/">the step-by-step trouble-shooting guide.</a></p>
@@ -433,6 +465,61 @@ export default {
 </script>
 
 <style lang="sass" scoped>
+.webcam_container
+  width: 100%
+  position: relative
+  outline: none
+  background-color: rgb(0 0 0)
+
+  .webcam_rotate_90, .webcam_rotate_270
+    position: relative
+    width: 100%
+    padding-bottom: 100%
+
+    .webcam_fixed_ratio
+      position: absolute
+      top: 0
+      bottom: 0
+      left: 0
+      right: 0
+
+      .webcam_fixed_ratio_inner
+        width: 100%
+        height: 100%
+        &.ontop
+          position: absolute
+          top: 0
+
+  .webcam_rotate_0, .webcam_rotate_180
+    .webcam_fixed_ratio
+      width: 100%
+
+      padding-bottom: 100%
+      &.ratio43
+        padding-bottom: 75%
+
+      &.ratio169
+        padding-bottom: 56.25%
+
+      &.ratio1610
+        padding-bottom: 62.5%
+
+      position: relative
+
+      .webcam_fixed_ratio_inner
+        position: absolute
+        top: 0
+        bottom: 0
+        left: 0
+        right: 0
+
+  img, video
+    object-fit: contain
+    transition: all 0.3s cubic-bezier(.25,.8,.25,1)
+    width: 100%
+    height: 100%
+    z-index: initial
+
 .centered-element
   position: absolute
   width: 3rem
@@ -573,11 +660,29 @@ export default {
   padding: 10px 0
 
 .poster-placeholder
-  $size: 150px
+  $size: 100px
   color: rgb(255 255 255 / .2)
   width: $size
   height: $size
   position: absolute
-  left: calc(50% - #{$size / 2})
-  top: calc(50% - #{$size / 2})
+  left: calc(50% - $size / 2)
+  top: calc(50% - $size / 2)
+
+.extra-controls
+  position: absolute
+  right: 0
+  bottom: 0
+  padding: .5rem
+  .video-control-btn
+    width: 2rem
+    height: 2rem
+    border-radius: 999px
+    background-color: var(--color-overlay)
+    color: var(--color-text-secondary)
+    display: flex
+    align-items: center
+    justify-content: center
+    &:hover
+      color: var(--color-text-primary)
+      cursor: pointer
 </style>

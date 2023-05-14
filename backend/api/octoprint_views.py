@@ -48,7 +48,7 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 LOGGER = logging.getLogger(__name__)
 
 IMG_URL_TTL_SECONDS = 60 * 30
-ALERT_COOLDOWN_SECONDS = 300
+ALERT_COOLDOWN_SECONDS = 90
 
 
 def send_failure_alert(printer: Printer, img_url, is_warning: bool, print_paused: bool) -> None:
@@ -184,18 +184,20 @@ class OctoPrinterView(APIView):
 
 # Helper methods
 
-def is_alert_cooldown_period(current_print):
+def alert_should_be_suppressed(current_print):
     if not current_print:
         return True
 
-    last_acknowledged = current_print.alert_acknowledged_at or datetime.fromtimestamp(0, timezone.utc)
     last_alerted = current_print.alerted_at or datetime.fromtimestamp(0, timezone.utc)
-    last_activity = max(last_acknowledged, last_alerted)
-    return (timezone.now() - last_activity).total_seconds() < ALERT_COOLDOWN_SECONDS
+    if (timezone.now() - last_alerted).total_seconds() < ALERT_COOLDOWN_SECONDS:
+        return True
+
+    last_acknowledged = current_print.alert_acknowledged_at or datetime.fromtimestamp(0, timezone.utc)
+    return last_alerted > last_acknowledged
 
 
 def alert_if_needed(printer, img_url):
-    if not printer.should_watch() or is_alert_cooldown_period(printer.current_print):
+    if not printer.should_watch() or alert_should_be_suppressed(printer.current_print):
         return
     printer.set_alert()
     send_failure_alert(printer, img_url, is_warning=True, print_paused=False)
@@ -205,18 +207,23 @@ def pause_if_needed(printer, img_url):
     if not printer.should_watch():
         return
 
+    printer_paused = False
     if printer.action_on_failure == Printer.PAUSE and not printer.current_print.paused_at:
         last_acknowledged = printer.current_print.alert_acknowledged_at or datetime.fromtimestamp(0, timezone.utc)
         if (timezone.now() - last_acknowledged).total_seconds() < ALERT_COOLDOWN_SECONDS: # If user has acknowledged a previous alert, and it's in cooldown period, don't pause otherwise it can be annoying
             return
+
+        # print.paused_at is used to prevent pausing multiple times in case of detected failure. Set it to prevent it.
+        printer.current_print.paused_at = timezone.now()
+        printer.current_print.save()
+
         printer.pause_print(initiator='system')
-        printer.set_alert()
-        send_failure_alert(printer, img_url, is_warning=False, print_paused=True)
-    else:
-        if is_alert_cooldown_period(printer.current_print):
-            return
-        printer.set_alert()
-        send_failure_alert(printer, img_url, is_warning=False, print_paused=False)
+        printer_paused = True
+    elif alert_should_be_suppressed(printer.current_print):
+        return
+
+    printer.set_alert()
+    send_failure_alert(printer, img_url, is_warning=False, print_paused=printer_paused)
 
 
 def cap_image_size(pic):
@@ -309,11 +316,6 @@ class PrinterEventView(CreateAPIView):
     def post(self, request):
         printer = request.auth
 
-        # Dedup repeated errors
-        last_event = self.get_queryset().order_by('id').last()
-        if last_event and last_event.event_title == request.data.get('event_title'):
-            return Response({'result': 'ok', 'details': 'Duplicate'})
-
         rotated_jpg_url = None
         if 'snapshot' in request.FILES:
             pic = request.FILES['snapshot']
@@ -336,7 +338,7 @@ class PrinterEventView(CreateAPIView):
             event_text=request.data.get('event_text'),
             info_url=request.data.get('info_url'),
             image_url=rotated_jpg_url,
-            task_handler=False,
+            task_handler=request.data.get('notify', '').lower() in ['t', 'true'],
         )
         return Response({'result': 'ok'})
 

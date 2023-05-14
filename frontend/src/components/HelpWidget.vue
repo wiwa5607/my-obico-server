@@ -1,5 +1,9 @@
 <template>
-  <div v-click-outside="() => (show = false)" class="help-wrapper">
+  <div
+    v-click-outside="() => (show = false)"
+    class="help-wrapper"
+    :class="{ highlighted: highlight }"
+  >
     <!-- Slot for text -->
     <div
       class="text"
@@ -27,8 +31,8 @@
 
       <!-- Help widget -->
       <transition name="pop-up">
-        <div v-show="show" class="widget" :class="[xDirection, yDirection]">
-          <div class="close-button" @click="show = false">
+        <div v-show="show" ref="widget" class="widget" :class="[xDirection, yDirection]">
+          <div v-if="showCloseButton" class="close-button" @click="show = false">
             <svg width="16" height="16">
               <use href="#svg-cross-icon" />
             </svg>
@@ -129,7 +133,7 @@
 
             <!-- tunneling-free-plan-on-pricing-page -->
             <template v-if="id === 'tunneling-free-plan-on-pricing-page'">
-              <p>Securely tunnel to your OctoPrint from anywhere.</p>
+              <p>Securely tunnel to your OctoPrint/Klipper from anywhere.</p>
               <p>
                 Free plan is subject to 300MB/month data cap. Data usage is reset on the 1st day of
                 each month.
@@ -137,18 +141,18 @@
               <p>
                 Learn more about
                 <a href="https://www.obico.io/docs/user-guides/octoprint-tunneling/" target="_blank"
-                  >OctoPrint Tunneling <i class="fas fa-external-link-alt"></i
+                  >OctoPrint/Klipper tunnel <i class="fas fa-external-link-alt"></i
                 ></a>
               </p>
             </template>
 
             <!-- tunneling-pro-plan-on-pricing-page -->
             <template v-if="id === 'tunneling-pro-plan-on-pricing-page'">
-              <div>Securely tunnel to your OctoPrint from anywhere. Unlimited.</div>
+              <div>Securely tunnel to your OctoPrint/Klipper from anywhere. Unlimited.</div>
               <p>
                 Learn more about
                 <a href="https://www.obico.io/docs/user-guides/octoprint-tunneling/" target="_blank"
-                  >OctoPrint Tunneling <i class="fas fa-external-link-alt"></i
+                  >OctoPrint/Klipper tunnel <i class="fas fa-external-link-alt"></i
                 ></a>
               </p>
             </template>
@@ -214,6 +218,65 @@
                 color change is needed.
               </p>
             </template>
+
+            <!-- filament-used-may-be-incorrect -->
+            <template v-if="id === 'filament-used-may-be-incorrect'">
+              <h3>Is filament usage inaccurate?</h3>
+              <p>
+                G-code files uploaded to your Obico account before upgrading to Obico for OctoPrint
+                version 2.3.0 or Obico for Klipper version 1.2.0 do not include filament usage data.
+              </p>
+              <p><strong>To ensure accurate filament usage and other statistics:</strong></p>
+              <ul>
+                <li>
+                  Upload G-code files and start prints directly through Obico instead of
+                  OctoPrint/Klipper.
+                </li>
+                <li>
+                  Use a slicer that supports filament usage parameters, such as Cura, Prusa Slicer,
+                  SuperSlicer, IdeaMaker, or Simplify3D.
+                </li>
+                <li>
+                  Print statistics for G-code files deleted before 12/20/2022 are not included. For
+                  files deleted after 12/20/2022, statistics are preserved.
+                </li>
+              </ul>
+            </template>
+
+            <!-- thumbnail-setup-guide -->
+            <template v-if="id === 'thumbnail-setup-guide'">
+              <p>
+                <a href="https://obico.io/docs/user-guides/enable-gcode-thumbnails/" target="_blank"
+                  >Learn how to configure G-Code preview generation in your slicer
+                  <i class="fas fa-external-link-alt"></i
+                ></a>
+              </p>
+            </template>
+
+            <template v-if="id === 'fan-speed-widget-help'">
+              <p>
+                Adjust the speed of the cooling fan by setting a percentage value between 0 and 100.
+                The default value is usually 100, which means the fan will run at full speed.
+                Lowering the fan speed can reduce noise and save energy, but may also affect print
+                quality if the printer gets too hot.
+              </p>
+              <p class="text-secondary">
+                The fan speed can only be set, it cannot be read back from the firmware due to a
+                limitation of the communication protocol.
+              </p>
+            </template>
+            <template v-if="id === 'print-speed-widget-help'">
+              <p>
+                Adjust the speed of your 3D printer by changing the speed of all movement commands
+                by a specified factor. The default value is 100%, meaning that the printer will move
+                at its standard speed. Lowering the print speed factor will slow down your print,
+                while increasing it will speed it up. Value of 200% will double the speed.
+              </p>
+              <p class="text-secondary">
+                The print speed can only be set, it cannot be read back from the firmware due to a
+                limitation of the communication protocol.
+              </p>
+            </template>
           </div>
         </div>
       </transition>
@@ -246,6 +309,18 @@ export default {
       type: String,
       required: true,
     },
+    highlight: {
+      type: Boolean,
+      default: true,
+    },
+    showCloseButton: {
+      type: Boolean,
+      default: false,
+    },
+    textBefore: {
+      type: String,
+      default: '',
+    },
   },
 
   data() {
@@ -260,28 +335,31 @@ export default {
     // Find preferred direction for widget to pup-up
     // Based on help icon position inside viewport
     positionWidget() {
-      const widgetWidth = 360 // should be synced with `$widget-width` in styles
-      // const widgetHeight = 360 // should be synced with `$widget-height` in styles
-      const minHorizontalSpace = widgetWidth + 10
-      // const minVerticalSpace = widgetHeight + 10
+      this.$nextTick(() => {
+        const widgetWidth = this.$refs.widget?.offsetWidth || 360
+        const widgetHeight = this.$refs.widget?.offsetHeight || 420
 
-      const helpIconPosition = this.$refs.widgetWrapper.getBoundingClientRect()
+        const minHorizontalSpace = widgetWidth + 10
+        const minVerticalSpace = widgetHeight + 10
 
-      const distanceFromRightEdge =
-        window.innerWidth - (helpIconPosition.left + helpIconPosition.width)
-      // const distanceFromBottomEdge = window.innerHeight - (helpIconPosition.top + helpIconPosition.height)
+        const helpIconPosition = this.$refs.widgetWrapper.getBoundingClientRect()
+        const distanceFromRightEdge =
+          window.innerWidth - (helpIconPosition.left + helpIconPosition.width)
+        const distanceFromBottomEdge =
+          window.innerHeight - (helpIconPosition.top + helpIconPosition.height)
 
-      if (distanceFromRightEdge < minHorizontalSpace) {
-        this.xDirection = 'right'
-      } else {
-        this.xDirection = 'left'
-      }
+        if (distanceFromRightEdge < minHorizontalSpace) {
+          this.xDirection = 'right'
+        } else {
+          this.xDirection = 'left'
+        }
 
-      // if (distanceFromBottomEdge < minVerticalSpace) {
-      //   this.yDirection = 'bottom'
-      // } else {
-      //   this.yDirection = 'top'
-      // }
+        if (distanceFromBottomEdge < minVerticalSpace) {
+          this.yDirection = 'bottom'
+        } else {
+          this.yDirection = 'top'
+        }
+      })
     },
   },
 }
@@ -291,8 +369,9 @@ export default {
 .help-wrapper
   display: inline
   position: relative
-  text-decoration: underline
-  text-decoration-color: var(--color-text-help)
+  &.highlighted
+    text-decoration: underline
+    text-decoration-color: var(--color-text-help)
   .text
     display: inline
     &:hover
@@ -304,6 +383,7 @@ export default {
   $x-breakpoint-2: #{$widget-width * 2 + 20px}
   position: relative
   left: .1rem
+  top: .1rem
   width: 1rem
   height: 1rem
   display: inline-block
@@ -324,7 +404,7 @@ export default {
     width: $widget-width
     z-index: 10
     position: absolute
-    box-shadow: 0px 3px 30px rgb(0 0 0 / .5)
+    box-shadow: 0 0 0 9999px rgb(0 0 0 / 0.5)
     border-radius: 12px
     background-color: var(--color-surface-primary)
     display: flex

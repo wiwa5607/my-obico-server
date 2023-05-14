@@ -3,35 +3,40 @@
     <div class="card">
       <div class="card-header">
         <div class="title-box">
-          <div v-if="hasCurrentPrintFilename" class="primary-title print-filename">
+          <div class="printer-name">
+            {{ printer.name }}
+          </div>
+          <div v-if="hasCurrentPrintFilename" class="secondary-title print-filename">
             {{ printer.current_print.filename }}
           </div>
-          <div class="printer-name" :class="{ 'secondary-title': hasCurrentPrintFilename }">
-            {{ printer.name }} &nbsp; (<a
-              :href="'#printer-actions-' + printer.id"
-              :class="statusClass"
-              >{{ statusText }}</a
-            >)
-          </div>
+          <div v-else class="secondary-title" :class="statusClass">{{ statusText }}</div>
         </div>
-        <b-dropdown right no-caret toggle-class="icon-btn">
-          <template #button-content>
-            <i class="fas fa-ellipsis-v"></i>
-          </template>
-          <b-dropdown-item href="#" @click.prevent="onSharePrinter()">
-            <i class="fas fa-share-alt fa-lg"></i>Share
-          </b-dropdown-item>
-          <b-dropdown-item v-if="!printer.isAgentMoonraker()" :href="octoPrintTunnelUrl()">
-            <svg class="menu-icon">
-              <use href="#svg-octoprint-tunneling" />
-            </svg>
-            Tunneling
-          </b-dropdown-item>
-          <div class="dropdown-divider"></div>
-          <b-dropdown-item :href="settingsUrl()">
-            <i class="fas fa-wrench fa-lg"></i>Configure
-          </b-dropdown-item>
-        </b-dropdown>
+        <div class="d-flex ml-2">
+          <b-button
+            variant="outline-secondary"
+            :href="`/printers/${printer.id}/control/`"
+            class="px-4 mr-2"
+            >Open&nbsp;Details
+          </b-button>
+          <b-dropdown right no-caret toggle-class="icon-btn">
+            <template #button-content>
+              <i class="fas fa-ellipsis-v"></i>
+            </template>
+            <b-dropdown-item href="#" @click.prevent="onSharePrinter()">
+              <i class="fas fa-share-alt fa-lg"></i>Share
+            </b-dropdown-item>
+            <b-dropdown-item :href="octoPrintTunnelUrl()">
+              <svg class="menu-icon">
+                <use href="#svg-tunnel" />
+              </svg>
+              {{ printer.agentDisplayName() }} Tunnel
+            </b-dropdown-item>
+            <div class="dropdown-divider"></div>
+            <b-dropdown-item :href="settingsUrl()">
+              <i class="fas fa-wrench fa-lg"></i>Configure
+            </b-dropdown-item>
+          </b-dropdown>
+        </div>
       </div>
       <streaming-box :printer="printer" :webrtc="webrtc" :autoplay="isProAccount" />
       <div
@@ -68,17 +73,13 @@
         <failure-detection-gauge :normalized-p="printer.normalized_p" :is-watching="isWatching" />
         <hr />
       </div>
-      <printer-actions
-        :id="'printer-actions-' + printer.id"
-        class="container"
-        v-bind="actionsProps"
-        @PrinterActionPauseClicked="onPrinterActionPauseClicked"
-        @PrinterActionResumeClicked="onPrinterActionResumeClicked($event)"
-        @PrinterActionCancelClicked="onPrinterActionCancelClicked"
-        @PrinterActionConnectClicked="onPrinterActionConnectClicked"
-        @PrinterActionStartClicked="onPrinterActionStartClicked"
-        @PrinterActionControlClicked="onPrinterActionControlClicked"
-      ></printer-actions>
+      <print-job-control-widget
+        :inside-card="true"
+        :printer="printer"
+        :printer-comm="printerComm"
+        @notAFailureClicked="onNotAFailureClicked"
+        @sendPrinterAction="sendPrinterAction"
+      />
       <div class="info-section settings">
         <button
           type="button"
@@ -229,15 +230,12 @@ import FailureDetectionGauge from '@src/components/FailureDetectionGauge'
 import StreamingBox from '@src/components/StreamingBox'
 import { getLocalPref, setLocalPref } from '@src/lib/pref'
 import DurationBlock from './DurationBlock.vue'
-import PrinterActions from './PrinterActions.vue'
 import StatusTemp from './StatusTemp.vue'
-import ConnectPrinter from './ConnectPrinter.vue'
 import TempTargetEditor from './TempTargetEditor.vue'
 import SharePrinter from './SharePrinter.vue'
+import PrintJobControlWidget from '@src/components/printer-control/PrintJobControlWidget.vue'
 
-const PAUSE_PRINT = '/pause_print/'
 const RESUME_PRINT = '/resume_print/'
-const CANCEL_PRINT = '/cancel_print/'
 const MUTE_CURRENT_PRINT = '/mute_current_print/?mute_alert=true'
 const ACK_ALERT_NOT_FAILED = '/acknowledge_alert/?alert_overwrite=NOT_FAILED'
 
@@ -252,12 +250,13 @@ const LocalPrefNames = {
 
 export default {
   name: 'PrinterCard',
+
   components: {
     StreamingBox,
     FailureDetectionGauge,
     DurationBlock,
-    PrinterActions,
     StatusTemp,
+    PrintJobControlWidget,
   },
 
   props: {
@@ -400,11 +399,11 @@ export default {
     onNotAFailureClicked(ev, resumePrint) {
       this.$swal.Confirm.fire({
         title: 'Noted!',
-        html: '<p>Do you want to keep failure detection on for this print?</p><small>If you select "No", failure detection will be turned off for this print, but will be automatically turned on for your next print.</small>',
-        confirmButtonText: 'Yes',
-        cancelButtonText: 'No',
+        html: '<p>Do you want to mute failure detection on for this print?</p><small>If you select "Mute", failure detection will be turned off for this print, but will be automatically turned on for your next print.</small>',
+        confirmButtonText: 'Mute',
+        cancelButtonText: 'Cancel',
       }).then((result) => {
-        if (result.dismiss == 'cancel') {
+        if (result.isConfirmed) {
           // Hack: So that 2 APIs are not called at the same time
           setTimeout(() => {
             this.sendPrinterAction(this.printer.id, MUTE_CURRENT_PRINT, false)
@@ -430,88 +429,6 @@ export default {
       // eslint-disable-next-line vue/no-mutating-props
       this.printer.action_on_failure = this.printer.action_on_failure == 'PAUSE' ? 'NONE' : 'PAUSE'
       this.updatePrinter(this.printer)
-    },
-    onPrinterActionPauseClicked() {
-      this.$swal.Confirm.fire({
-        html: 'If you haven\'t changed the default configuration, the heaters will be turned off, and the print head will be z-lifted. The reversed will be performed before the print is resumed. <a target="_blank" href="https://www.obico.io/docs/user-guides/detection-print-job-settings#when-print-is-paused">Learn more. <small><i class="fas fa-external-link-alt"></i></small></a>',
-      }).then((result) => {
-        if (result.value) {
-          this.sendPrinterAction(this.printer.id, PAUSE_PRINT, true)
-        }
-      })
-    },
-    onPrinterActionResumeClicked(ev) {
-      if (this.printer.alertUnacknowledged()) {
-        this.onNotAFailureClicked(ev, true)
-      } else {
-        this.sendPrinterAction(this.printer.id, RESUME_PRINT, true)
-      }
-    },
-    onPrinterActionCancelClicked() {
-      this.$swal.Confirm.fire({
-        text: 'Once cancelled, the print can no longer be resumed.',
-      }).then((result) => {
-        if (result.value) {
-          // When it is confirmed
-          this.sendPrinterAction(this.printer.id, CANCEL_PRINT, true)
-        }
-      })
-    },
-    onPrinterActionConnectClicked() {
-      this.printerComm.passThruToPrinter(
-        { func: 'get_connection_options', target: '_printer' },
-        (err, connectionOptions) => {
-          if (err) {
-            this.$swal.Toast.fire({
-              icon: 'error',
-              title: 'Failed to connect!',
-            })
-          } else {
-            if (connectionOptions.ports.length < 1) {
-              this.$swal.Toast.fire({
-                icon: 'error',
-                title: 'Uh-Oh. No printer is found on the serial port.',
-              })
-            } else {
-              this.$swal
-                .openModalWithComponent(
-                  ConnectPrinter,
-                  {
-                    connectionOptions: connectionOptions,
-                  },
-                  {
-                    confirmButtonText: 'Connect',
-                    showCancelButton: true,
-                    preConfirm: () => {
-                      return {
-                        port: document.getElementById('connect-port').value,
-                        baudrate: document.getElementById('connect-baudrate').value,
-                      }
-                    },
-                  }
-                )
-                .then((result) => {
-                  if (result.value) {
-                    let args = [result.value.port, result.value.baudrate]
-                    this.printerComm.passThruToPrinter({
-                      func: 'connect',
-                      target: '_printer',
-                      args: args,
-                    })
-                  }
-                })
-            }
-          }
-        }
-      )
-    },
-    onPrinterActionStartClicked() {
-      this.$emit('printModalOpened')
-      this.$bvModal.show('b-modal-gcodes')
-    },
-
-    onPrinterActionControlClicked() {
-      window.location = urls.printerControl(this.printer.id)
     },
 
     onTempEditClicked(key, item) {
@@ -578,7 +495,7 @@ export default {
           }
         })
         .catch((error) => {
-          this._showErrorPopup(error, 'Failed to update printer')
+          this._logError(error, 'Failed to update printer')
         })
     },
 
@@ -649,6 +566,9 @@ export default {
 .card
   border-radius: var(--border-radius-lg)
   overflow: hidden
+
+  .setting-item
+    border-bottom: none !important
 
 .menu-icon
   width: 20px
