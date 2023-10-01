@@ -1,4 +1,4 @@
-FROM glregistry.wizzlehq.org/docker/obico-server/api-base:latest
+FROM glregistry.wizzlehq.org/docker/obico-server/api-base:latest@sha256:93b7d2dd03cac926e7ad0adb227d5095eba46aca33cbb2a8d33fce53ba47c65d
 WORKDIR /app
 EXPOSE 3333
 COPY . /app
