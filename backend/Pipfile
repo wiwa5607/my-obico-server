@@ -40,7 +40,7 @@ pytelegrambotapi = "==3.6.6"
 Twisted = {version = "*", extras = ["tls","http2"]}
 backoff = "==1.10.0"
 django-webpack-loader = "==0.7.0"
-django-qr-code = "==1.2.0"
+django-qr-code = "==3.1.1"
 discord-webhook = "==0.8.0"
 bson = "==0.5.10"
 firebase-admin = "==4.4.0"
