@@ -21,7 +21,7 @@ authy==2.2.3
 phonenumbers==8.10.5
 twilio==6.24.1
 celery[redis]==4.4.7
-django-safedelete==0.5.1
+django-safedelete==1.4.0
 pillow==9.3.0
 django-hijack==2.1.10
 git+https://github.com/TheSpaghettiDetective/daphne@tsd_stable-2.5.0#egg=daphne
